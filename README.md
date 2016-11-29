@@ -1,3 +1,5 @@
+##NOTE: This project is still in its initial development. All of the information below is not valid and pending the initial release.
+
 Manufactured version of this project will be made available when the project has reached an appropriate maturity.
 
 #Introduction
