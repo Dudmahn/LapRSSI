@@ -1,8 +1,8 @@
 ##Seial input: Inputs that can be sent from Lapsync to LapRSSI.
 # "number of pilots" -- sets the number of receivers that will be used.
 @ "pilot number"    "pilot frequency"    "pilot rssi trigger value" -- this will set the freq / rssi value for the indicated pilot.
-& scan on -- turns on the scan function
-& scan off -- turns off the scan function
+& scan 1 -- turns on the scan function
+& scan 0 -- turns off the scan function
 
 ##Seial input: Outputs from LapRSSI to Lapsync.
 #    “heartbeat”    "timer value"    LapRSSI -- A heart beat output on 1 second intervals.
