@@ -29,7 +29,16 @@ The following are the planned features to be incorperated into MultiGP Lapsync f
   The receivers will require a ~12v power supply. A 3x Li-po battery works great.
 - **Software** - Once the software is uploaded to the hardware it will run automatically.
 
-####Initial Setup
+
+##Software Installation
+- ** -Download [Arduino version 1.6.12](https://www.arduino.cc/en/Main/OldSoftwareReleases#previous)
+- ** -Go to the [PJRC Teensyduino installation](http://www.pjrc.com/teensy/td_download.html) page. Download Teensyduino and follow the instructions. This will setup the Arduino software to work with the Teensy.
+- ** -Download the latest release of LapRSSI.ino and open it in arduino.
+- ** -Click the UPLOAD button. The code will compile and upload to the Teensy.
+- ** -Wire the receiver(s) to the teensy and then proceed with the initial setup.
+
+
+##Initial Setup
 When powering on for the first time it is best to calibrate your RSSI modules. No two modules have the same RSSI min and max readings. To calibrate follow these steps below. You can repeat this process as many times as needed.
 
 1. Connect the hardware assembly to your computer with a USB cable.
