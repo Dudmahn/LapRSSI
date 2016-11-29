@@ -42,7 +42,7 @@ When powering on for the first time it is best to calibrate your RSSI modules. N
 ##Hardware
 This project is centered around the [Tensy 3.2](https://www.pjrc.com/store/teensy32.html). It is a faster version of an Arduino.
 
-The project also is designed to use the rx5808 5.8ghz receiver module which can be found at a number of online stores. The number of modules can be varied from 1 to 8.
+The project also is designed to use the [rx5808 5.8ghz receiver module](https://www.foxtechfpv.com/product/5.8G%20modules/rx5808/RX5808-Spec-V1.pdf) which can be found at a number of online stores. The number of modules can be varied from 1 to 8.
 
 ##Software
 The software uses SPI to allow the 8 channel receiver to be able change to any of the 40 channels that are standard usage. It reads the RSSI value from each receiver and when it detects a value higher than the associated threshold it will send a string to Lapsync triggering a lap count.
