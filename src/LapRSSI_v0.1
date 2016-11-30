@@ -1,76 +1,98 @@
 elapsedMillis beat;
 IntervalTimer myTimer;
-int heartbeat;
+int heartbeat = 1;
 float timer_value = 1;
-float timer_save[6];
-int rssi[6];
-int rssi_threshold = 315;
-int pin[6] = {9,8,7,6,5,4};
+float timer_save[8];
+int pilot_rssi[8];
+int rssi_threshold[8] = {550,550,550,550,550,550,550,550};
+int pin[8] = {0,1,2,3,4,5,6,7};
+char pilot_number[8] = {'0001','0002','0003','0004','0005','0006','0007','0008'};
+int pilot;
+int pilot_frequency[8];
+int pilot_rssi_threshold[8];
+int pilot_lap_step = 0;
+int timer_trip = 0;
 
 void setup()
 {
   Serial.begin(9600); //opens serial port, sets data rate to 9600 bps
   myTimer.begin(timer, 1000);  // increment timer every 0.001 seconds
-  heartbeat = 1;
 }
 
 void timer(void)
 {
   timer_value = timer_value + 0.001;
-  for (int i = 0; i < 1; i++)   // for (int i = 0; i < 6; i++){
+  for (int i = 0; i < 8; i++)
   {
-    rssi[i] = analogRead(pin[i]);
-    if (rssi[i] > rssi_threshold) {timer_save[i] = timer_value;}
+    if (timer_save[i] == 0)
+    {
+      pilot_rssi[i] = analogRead(pin[i]);
+      if (pilot_rssi[i] > rssi_threshold[i]) 
+      {
+        timer_save[i] = timer_value;
+        timer_trip = 1;
+      }
+    }
   }
 }
 
 void loop()
 {
-  if (beat >= 1000)
+  for (int i = 0; i < 8; i++)
   {
-    for (int i = 0; i < 7; i++)
+    if (beat >= 1000)
     {
-      if (i == 6) 
+      if  (timer_save[i] == 0)
       {
         Serial.print(" #");
-        Serial.print("\t");
-        Serial.print("202");
-        Serial.print("\t");   
+        Serial.print("\t"); 
         Serial.print(heartbeat);
         Serial.print("\t");
-        Serial.print("0");
+        Serial.print(timer_value);
         Serial.print("\t");
-        Serial.println("xC249");
+        Serial.println("LapRSSI");
         heartbeat = heartbeat + 1;
        }
       else
-      {    
-        if (timer_save[i] > 0)
-        {
-          noInterrupts();
-          Serial.print(" @");
-          Serial.print("\t");
-          Serial.print("202");
-          Serial.print("\t");  
-          Serial.print(heartbeat);
-          Serial.print("\t");
-          Serial.print("1002021");
-          Serial.print("\t");
-          Serial.print(timer_save[i], 3); // needs time stamp
-          Serial.print("\t");
-          Serial.print("22"); // needs number of times read??
-          Serial.print("\t");
-          Serial.print("111");
-          Serial.print("\t");
-          Serial.print(rssi[i]);
-          Serial.print("\t");
-          Serial.println("x5724");
-          timer_save[i] = 0;
-          interrupts();
-          heartbeat = heartbeat + 1;
-        }
+      {
+        noInterrupts();
+        Serial.print(" @");
+        Serial.print("\t");
+        Serial.print(heartbeat);
+        Serial.print("\t");
+        Serial.print(pilot_number[i]);
+        Serial.print("\t");
+        Serial.print(timer_save[i], 3);
+        Serial.print("\t");
+        Serial.print(pilot_rssi[i]);
+        Serial.print("\t");
+        Serial.println("LapRSSI");
+        interrupts();
+        heartbeat = heartbeat + 1;
+        timer_save[pilot_lap_step] = 0;
+        timer_trip = 0;
       }
     }
     beat = 0;
+  }
+  if (Serial.available() > 0) 
+  {
+    if (Serial.peek() == '@') 
+    {
+      Serial.read();
+      pilot = Serial.parseInt();
+      for  (int i = 0; i < 8; i++)
+      {
+        if (pilot == i + 1)
+        {
+          pilot_frequency[i] = Serial.parseInt();
+          pilot_rssi_threshold[i] = Serial.parseInt();
+        }
+      }
+    }
+  }
+  while (Serial.available() > 0) 
+  {
+    Serial.read();
   }
 }
