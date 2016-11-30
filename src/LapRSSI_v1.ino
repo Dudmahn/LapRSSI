@@ -20,8 +20,8 @@ void timer(void)
   timer_value = timer_value + 0.001;
   for (int i = 0; i < 8; i++){
   {
-    rssi[i] = analogRead(pin[i]);
-    if (rssi[i] > pilot_rssi_threshold[i]) {timer_save[i] = timer_value;}
+    pilot_rssi[i] = analogRead(pin[i]);
+    if (pilot_rssi[i] > pilot_rssi_threshold[i]) {timer_save[i] = timer_value;}
   }
 }
 
