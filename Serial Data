@@ -3,8 +3,7 @@
 @ "pilot number"    "pilot frequency"    "pilot rssi trigger value" -- this will set the freq / rssi value for the indicated pilot.
 & scan 1 -- turns on the scan function
 & scan 0 -- turns off the scan function
-$ "pilot number"  cal 1 -- turns pilot rssi calibration on.
-$ "pilot number"  cal 0 -- turns pilot rssi calibration off.
+$ "pilot number"  cal -- activates pilot rssi calibration
 
 ##Seial input: Outputs from LapRSSI to Lapsync.
 #    “heartbeat”    "timer value"    LapRSSI -- A heart beat output on 1 second intervals.
