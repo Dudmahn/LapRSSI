@@ -2,8 +2,6 @@
   It is setup to work with a single receiver connected to analog pin 9. 
   For Lapsync it outputs a trackmate style string so the trackmate setting will need to be selected.
   
-## - LapRSSI_v0.1.ino --
-  Replaced "delay (1000)" with "if (beat >= 1000)" to handle the output timing on 1 second intervals.
 
 ## - LapRSSI_v1.ino -- is a beta file with changes to work with Lapsync released for LapRSSI. This file is in work.
   It is looking for inputs from lapsync for;
