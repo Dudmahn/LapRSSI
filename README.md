@@ -68,7 +68,9 @@ Contributors are welcome. We ask that you submit your ideas to the team for revi
 
 ##License & Recognition
 ####Recognition
-To be added.
+Much of the inspiration of this project came from the [rx5808-pro-diversity](https://github.com/sheaivey/rx5808-pro-diversity) project and the ability to tune a RX module with SPI. This project in turn based its SPI driver fs_skyrf_58g-main.c Written by Simon Chambers.\
+
+Special thanks to LapSync for working with us to integrate this project with their software.
 
 ####License
 The MIT License (MIT)
