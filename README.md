@@ -35,7 +35,8 @@ The following are the planned features to be incorperated into MultiGP Lapsync f
 ##Software Installation
 - ** -Download [Arduino version 1.6.12](https://www.arduino.cc/en/Main/OldSoftwareReleases#previous)
 - ** -Go to the [PJRC Teensyduino installation](http://www.pjrc.com/teensy/td_download.html) page. Download Teensyduino and follow the instructions. This will setup the Arduino software to work with the Teensy.
-- ** -Download the latest release of LapRSSI.ino and open it in arduino.
+- ** -Download the latest release of LapRSSI.ino and open it in arduino. (This file needs to go into a folder with the same name as the file. The folder needs to go into your Arduino folder.
+- ** -Down load the three library files. (channels.h, RX5808spi & pinAssignments) These need to go into folders with the same names as the files. The folder needs to go into your Library folder under the Arduino folder.
 - ** -Click the UPLOAD button. The code will compile and upload to the Teensy.
 - ** -Wire the receiver(s) to the teensy and then proceed with the initial setup.
 
