@@ -56,6 +56,10 @@ This project is centered around the [Tensy 3.2](https://www.pjrc.com/store/teens
 
 The project also is designed to use the [rx5808 5.8ghz receiver module](https://www.foxtechfpv.com/product/5.8G%20modules/rx5808/RX5808-Spec-V1.pdf) which can be found at a number of online stores. The number of modules can be varied from 1 to 8.
 
+The SPI output to change the frequency are using the Digital pins 0 - 7 for the receiver (slave select), 10 for the data and 11 for clock.
+
+The rssi inputs are on analog pins 0 - 7.
+
 ##Software
 The software uses SPI to allow the 8 channel receiver to be able change to any of the 40 channels that are standard usage. It reads the RSSI value from each receiver and when it detects a value higher than the associated threshold it will send a string to Lapsync triggering a lap count.
 
