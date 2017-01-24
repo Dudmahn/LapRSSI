@@ -54,7 +54,7 @@ void loop()
     Serial.print("\t");
     Serial.print(timer_value);
     Serial.print("\t");
-    Serial.println(pilot); //LapRSSI
+    Serial.println(LapRSSI);
     heartbeat = heartbeat + 1;
     beat = 0;
   }
