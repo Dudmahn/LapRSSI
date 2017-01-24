@@ -77,7 +77,7 @@ void loop()
       Serial.print("Freq=");
       Serial.print(pilot_frequency[i]);
       Serial.print("\t");
-      Serial.print("rssiT");
+      Serial.print("rssi");
       Serial.print(rssi_threshold[i]);
       Serial.print("\t");
       Serial.println("LapRSSI");
