@@ -21,7 +21,7 @@ The following are the planned features to be incorperated into MultiGP Lapsync f
 
 - **Pilot Count** - The number of pilots for each heat will set the number of receivers used. This will be hardware limited by how many receivers are installed.
 - **Pilot Frequency** - The there will be a video frequency field for each pilot in Lapsync that will then update the frequency of each receiver.
-- **RSSI Trigger** - A RSSI trivver value will need to be set in Lapsync for each pilot. This can be changed to match the pilots equipment.
+- **RSSI Threshold** - A RSSI trivver value will need to be set in Lapsync for each pilot. This can be changed to match the pilots equipment.
 - **RSSI Calibrate** - A button for each pilot will allow an automatic callibration of the RSSI trigger.
 - **Frequency Scanner** - A feature will be added to Lapsync that will show a graph of the RSSI value for all 40 frequency channels. 
 
