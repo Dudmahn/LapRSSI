@@ -19,11 +19,11 @@ IntervalTimer myTimer;
 
 void setup()
 {
-  for (int i = 0; i < 8; i++)
-  {
-    pinMode(i, OUTPUT);
-    digitalWrite(i, HIGH);
-  }
+//  for (int i = 0; i < 8; i++)
+//  {
+    pinMode(5, OUTPUT);
+    digitalWrite(5, HIGH);
+//  }
   pinMode(spiDataPin, OUTPUT);
   pinMode(spiClockPin, OUTPUT);
   Serial.begin(9600); //opens serial port, sets data rate to 9600 bps
@@ -54,7 +54,7 @@ void loop()
     Serial.print("\t");
     Serial.print(timer_value);
     Serial.print("\t");
-    Serial.println(LapRSSI);
+    Serial.println(pilot); //LapRSSI
     heartbeat = heartbeat + 1;
     beat = 0;
   }
@@ -147,7 +147,7 @@ void loop()
 
 void setupSPIpins() {
     // SPI pins for RX control
-    pinMode (pilot, OUTPUT);
+//    pinMode (pilot, OUTPUT);
     pinMode (spiDataPin, OUTPUT);
     pinMode (spiClockPin, OUTPUT);
 
