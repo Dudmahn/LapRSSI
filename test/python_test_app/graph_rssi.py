@@ -25,8 +25,8 @@ import pyttsx3
 import winsound
 
 # Configuration
-comPort = 'COM65'
-#comPort = 'COM50'
+#comPort = 'COM65'
+comPort = 'COM50'
 historySeconds = 150.0
 
 
@@ -92,9 +92,12 @@ def processSerialMsg(msg):
     msg = msg.rstrip('\r\n')
     fields = msg.split('\t')
 
+    if (fields[0] != '%RSS') and (fields[0] != '%HRT'):
+        # Print non-repeating messages to the console
+        print(msg)
+
     if fields[0] == '@FRA':
         if len(fields) == 9:
-            print(msg)
             freq1 = int(fields[2])
             freq2 = int(fields[3])
             freq3 = int(fields[4])
@@ -152,7 +155,6 @@ def processSerialMsg(msg):
                 threshHi5 = threshHi
                 addPoint(lap5, curTime, peakRssi)
             updatePlot()
-            print(msg)
 
             # Play beep
             beepThreadPool.start(beepWorkerThread())
@@ -213,14 +215,43 @@ class serialThread(pg.QtCore.QThread):
         except:
             print('Error opening com port ', comPort)
 
-        # Reset the race timer
-        ser.write('#RAC\r\n'.encode('utf-8'))
-        time.sleep(1)
+        print('graph_rssi.py serialThread starting up...')
+        
+        # Set frequencies
+        ser.write('#FRA\t5658\t5695\t5760\t5800\t5880\t5917\t5917\t5917\r\n'.encode('utf-8'))   # IMD6C
+        #ser.write('#FRA\t5658\t5695\t5732\t5769\t5806\t5843\t5880\t5917\r\n'.encode('utf-8'))   # Raceband 8
+        #ser.write('#FRA\t5658\t5658\t5658\t5658\t5658\t5658\t5658\t5658\r\n'.encode('utf-8'))   # All Raceband 1
+        time.sleep(0.250)
+        
+        # Configure the timing device. Parameters are:
+        #    rssi_report_interval
+        #    cal_offset
+        #    cal_thresh
+        #    trig_thresh
+        ser.write('#CFG\t250\t100\t300\t100\r\n'.encode('utf-8'))
+        time.sleep(0.250)
+
         ser.reset_input_buffer()
+
+        # Query version
+        ser.write('?VER\r\n'.encode('utf-8'))
+        time.sleep(0.250)
+
+        # Query configuration
+        ser.write('?CFG\r\n'.encode('utf-8'))
+        time.sleep(0.250)
 
         # Query frequency assignment
         ser.write('?FRA\r\n'.encode('utf-8'))
+        time.sleep(0.250)
 
+        # Query initial RSSIs
+        ser.write('?RSS\r\n'.encode('utf-8'))
+        time.sleep(0.250)
+        
+        # Reset the race timer
+        ser.write('#RAC\r\n'.encode('utf-8'))
+        
         # Read data from serial port
         while True:
             msg = str(ser.readline(), 'utf-8')
@@ -249,6 +280,7 @@ class speechWorkerThread(pg.QtCore.QRunnable):
             msg = msg + ', lap ' + str(self.lap) + ', ' + "{:.3f}".format(self.time)
         tts.say(msg)
         tts.runAndWait()
+        
 
 beepThreadPool = pg.QtCore.QThreadPool()
 beepThreadPool.setMaxThreadCount( 1 );
