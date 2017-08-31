@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Defines / Macros
 ////////////////////////////////////////////////////////////////////////////////
-#define FIRMWARE_VERSION                  "1.0_alpha"
+#define FIRMWARE_VERSION                  "1.1_alpha"
 #define PROTOCOL_VERSION                  "1.2"
 
 #define MAX_RX_NODES                      8
@@ -86,6 +86,8 @@ typedef struct {
 
   float rssiSmoothed;   // longer term "smoothed" RSSI
   int rssiPeakSmoothed;
+  
+  int rssiPeakSmoothedForRSS; // peak smoothed RSSI value since last RSS message
 
   // Last lap state
   int lapCount;
@@ -245,6 +247,9 @@ void loop() {
       // Divide the moving average RSSI sum (with rounding) to be the moving average
       rxNodes[i].rssiRaw = (sums[i] + (sums[i] >> (ADC_FILTER_BITS - 1))) >> ADC_FILTER_BITS;
       rxNodes[i].rssiSmoothed = (rxNodes[i].rssiRaw * RSSI_SMOOTHING_CONSTANT) + (rxNodes[i].rssiSmoothed * (1.0 - RSSI_SMOOTHING_CONSTANT));
+
+      // Update peak smoothed RSSI value for the RSS message
+      rxNodes[i].rssiPeakSmoothedForRSS = max(rxNodes[i].rssiPeakSmoothedForRSS, rxNodes[i].rssiSmoothed);
 
       if (rxNodes[i].enabled) {
         if (rxNodes[i].rssiTrigger > 0) {
@@ -550,28 +555,12 @@ void sendMsgRSS(bool event) {
   for (i = 0; i < MAX_RX_NODES; i++) {
     Serial1.print("\t");
     if (rxNodes[i].enabled) {
-      Serial1.print((int) rxNodes[i].rssiSmoothed);
+      Serial1.print((int) rxNodes[i].rssiPeakSmoothedForRSS);
+      rxNodes[i].rssiPeakSmoothedForRSS = 0;  // reset peak for next message
+      //Serial1.print((int) rxNodes[i].rssiSmoothed);
       //Serial1.print((int) rxNodes[i].rssiRaw);
     }
   }
-  Serial1.println();
-}
-
-void sendMsgTST(bool event) {
-  if (event) {
-    Serial1.print("%RSS");
-  }
-  else {
-    Serial1.print("@RSS");
-  }
-  Serial1.print("\t");
-  Serial1.print(raceNumber);
-  Serial1.print("\t");
-  printMsValAsFloat(Serial1, raceTimer);
-  Serial1.print("\t");
-  Serial1.print((int) rxNodes[0].rssiRaw);
-  Serial1.print("\t");
-  Serial1.print((int) rxNodes[0].rssiSmoothed);
   Serial1.println();
 }
 
@@ -587,8 +576,10 @@ void sendMsgLAP(int rxNode) {
   Serial1.print(rxNodes[rxNode].lapCount);
   Serial1.print("\t");
   printMsValAsFloat(Serial1, rxNodes[rxNode].lapTime);
+  //Serial1.print("\t");
+  //Serial1.print(rxNodes[rxNode].lapPeakRssiRaw);
   Serial1.print("\t");
-  Serial1.print(rxNodes[rxNode].lapPeakRssiRaw);
+  Serial1.print(rxNodes[rxNode].lapPeakRssiSmoothed);
   Serial1.print("\t");
   Serial1.print(rxNodes[rxNode].rssiTrigger);
   Serial1.print("\t");
@@ -609,6 +600,8 @@ void resetAllRxNodes() {
     rxNodes[i].rssiPeakRawTimestamp = 0;
 
     rxNodes[i].rssiPeakSmoothed = 0;
+
+    rxNodes[i].rssiPeakSmoothedForRSS = 0;
 
     rxNodes[i].lapCount = 0;
     rxNodes[i].lapTimestamp = 0;
@@ -671,13 +664,10 @@ void setRxModuleFreq(int rxNode, int frequency) {
 
   for (i = 0; i < sizeof(vtxFreqTable); i++) {
     if (frequency == vtxFreqTable[i]) {
+      rxNodes[rxNode].freq = frequency;
+      writeSPIReg(rxNode, RTC6715_SYNTH_REG_B, vtxHexTable[i]);
       break;
     }
-  }
-
-  if (i < sizeof(vtxFreqTable)) {
-    rxNodes[rxNode].freq = frequency;
-    writeSPIReg(rxNode, RTC6715_SYNTH_REG_B, vtxHexTable[i]);
   }
 }
 
