@@ -1,0 +1,164 @@
+LapRSSI Serial Interface Specification
+Protocol version 1.2
+August 30, 2017
+S. Lilly
+
+This document describes the serial interface protocol for the LapRSSI timing system.
+
+Communications are via UART at 115200 baud, 8/N/1.
+
+Each message begins with a message type character, followed by a 3-character
+message identifier, then (optionally) by a number of tab-delimited fields. Each
+message is terminated with a CRLF pair (\r\n). For example:
+    <T><MID>\t<field_1>\t<field_2>\t<field_3>\t<field_4>\r\n
+where <T> is the message type character, <MID> is the message identifier,
+and <field_n> are message-specific parameters
+
+There are 4 message types:
+    # = Command (Host -> Timer)
+    ? = Query (Host -> Timer)
+    @ = Response (Timer -> Host)
+    % = Event (Timer -> Host)
+
+When the host sends a command '#', the timer sends a response '@' message as
+an acknowledgement. In addition, the host may query '?' at any time and receive
+the same response '@' message.
+
+If the timer encounters an error while processing a command or query, it will
+ignore the message, and no response will be sent.
+
+
+The following messages are supported by the timing system:
+
+Version (VER)
+================================================================================
+?VER
+@VER	<protocol_version>	<fw_version>
+
+Parameters:
+ - protocol_version: Serial interface protocol version number, in floating point
+                     number format.
+ - fw_version: LapRSSI firmware version number, in floating point number format.
+
+
+Frequency Assignment (FRA)
+================================================================================
+#FRA	<freq_1>	<freq_2>	<freq_3>	<freq_4>	<freq_5>	<freq_6>	<freq_7>	<freq_8>
+?FRA
+@FRA	<freq_1>	<freq_2>	<freq_3>	<freq_4>	<freq_5>	<freq_6>	<freq_7>	<freq_8>
+
+Parameters:
+ - freq_n: Frequency to assign for the given receiver slot. Integer with valid
+           range from 5645 to 5945, or blank to leave the current value unchanged.
+           If the frequency is invalid for a given slot, the frequency for that
+           slot will be left unchanged. In the response message, frequencies for
+           disabled slots are blank.
+
+
+Receiver Enable (REN)
+================================================================================
+#REN	<rcvr_en_1>	<rcvr_en_2>	<rcvr_en_3>	<rcvr_en_4>	<rcvr_en_5>	<rcvr_en_6>	<rcvr_en_7>	<rcvr_en_8>
+?REN
+@REN	<rcvr_en_1>	<rcvr_en_2>	<rcvr_en_3>	<rcvr_en_4>	<rcvr_en_5>	<rcvr_en_6>	<rcvr_en_7>	<rcvr_en_8>
+
+Parameters:
+ - rcvr_en_n: Enable or Disable a receiver slot. 0=disabled, 1=enabled, and blank
+              leaves the current value unchanged. If the value is invalid for a
+              given slot, the value for that slot will be left unchanged.
+
+
+Config (CFG)
+================================================================================
+#CFG	<rssi_report_interval>	<cal_offset>	<cal_thresh>	<trig_thresh>
+@CFG
+?CFG	<rssi_report_interval>	<cal_offset>	<cal_thresh>	<trig_thresh>
+
+Parameters:
+ - rssi_report_interval: Specifies how often the RSSI report event message should
+                         be sent from the timing system. Floating point, with 
+                         valid range from 250 (250ms) to 10000 (10 seconds).
+                         A value of 0 disables RSSI report event messages. A blank
+                         or invalid value with leave the current value unchanged.
+ - cal_offset: Calibration offset. This value is subtracted from the peak value
+               on the first pass to form a trigger RSSI level for detection of
+               subsequent laps. Integer with valid range from 0 to 1023. A blank
+               or invalid value will leave the current value unchanged.
+ - cal_thresh: Calibration threshold. This value is subtracted from the trigger
+               RSSI level during the first pass to detect when the quad has passed
+               the gate. Integer with valid range from 0 to 1023. A blank or
+               invalid value will leave the current value unchanged.
+ - trig_thresh: This value is subtracted from the trigger RSSI level during
+                subsequent passes, to detect when the quad has passed the gate.
+                Integer with valid range from 0 to 1023. A blank or invalid value
+                will leave the current value unchanged.
+
+
+Race Timer (RAC)
+================================================================================
+#RAC
+@RAC	<race_number>	<timer>
+
+Description: Start a new race, triggering auto-calibration
+
+Parameters:
+ - race_number: Race number, which is incremented each time the timer is reset.
+ - timer: Current timer value. Floating point number with millisecond resolution.
+          The timer is reset to 0.000 when upon receiving the #TIM command.
+
+
+Heartbeat Report (HRT)
+================================================================================
+%HRT	<race_number>	<timer>	<hb_counter>
+
+Parameters:
+ - race_number: Race number, which is incremented each time a new race is started.
+ - timer: Current timer value. Floating point number with millisecond resolution.
+          The timer is reset to 0.000 when starting a new race.
+ - hb_counter: Heartbeat counter, which is incremented each time the heartbeat
+               report message is sent.
+
+
+RSSI Report (RSS) - Interval is controlled by CFG->rssi_report_interval
+================================================================================
+%RSS	<race_number>	<timer>	<rssi_1>	<rssi_2>	<rssi_3>	<rssi_4>	<rssi_5>	<rssi_6>	<rssi_7>	<rssi_8>
+?RSS
+@RSS	<race_number>	<timer>	<rssi_1>	<rssi_2>	<rssi_3>	<rssi_4>	<rssi_5>	<rssi_6>	<rssi_7>	<rssi_8>
+
+Parameters:
+ - race_number: Race number, which is incremented each time a new race is started.
+ - timer: Current timer value. Floating point number with millisecond resolution.
+ - rssi_n: Current RSSI value for a given receiver. Integer with valid range
+           from 0 to 1023. RSSI values for disabled slots are blank.
+
+
+Lap Report (LAP)
+================================================================================
+%LAP	<race_number>	<timer>	<receiver_number>	<lap_count>	<lap_time>	<peak_rssi>	<trig_rssi_hi>	<trig_rssi_lo>
+
+Parameters:
+ - race_number: Race number, which is incremented each time a new race is started.
+ - timer: Current timer value. Floating point number with millisecond resolution.
+ - receiver_number: Identifies the receiver slot (0 through 7) for this lap report.
+ - lap_count: Current lap count for this receiver, for the current race. The
+              initial gate crossing is reported as lap 0.
+ - lap_time: Lap time for the previous completed lap. For the initial gate
+             crossing (lap 0), the hole shot time is reported.
+ - peak_rssi: Peak RSSI value detected for this gate crossing.
+ - trig_rssi_hi: Upper RSSI threshold required to begin a gate crossing event
+                 (this is a result of the auto-calibration procedure). This value
+                 may be useful while tuning the cal_offset configuration parameter.
+ - trig_rssi_lo: Lower RSSI threshold required to end a gate crossing event (this
+                 is a result of the auto-calibration procedure). This value may
+                 be useful while tuning the trig_thresh configuration parameter.
+
+
+Debug Message (DBG)
+================================================================================
+#DBG	<dbg_enable>
+%DBG	<message>
+
+Parameters:
+ - dbg_enable: Enable or disable debug message output from the timer.
+               0=disabled, 1=enabled
+ - message: Text message containing debug information (only occurs when debug
+            messages are enabled)

@@ -1,99 +1,35 @@
-##NOTE: This project is still in its initial development. All of the information below is not valid and pending the initial release.
+#LapRSSI - RF Based Lap Timing Device
+LapRSSI is an 8-channel timing device for FPV racing that utilizes the 5.8 GHz analog video signal from the aircraft to perform lap detection. It is intended to be inexpensive, easy to build, and easy to maintain. It functions as a hardware timing device in combination with a PC-based lap timing software such as [LiveTime FPV](https://www.livetimescoring.com/).
 
-Manufactured version of this project will be made available when the project has reached an appropriate maturity.
+LapRSSI consists of a single PJRC Teensy 3.2 microcontroller that interfaces with 8 Boscam RX5808 receivers, and it communicates with the lap timing software via UART serial link. The preferred serial communication device is the [SiK/3DR  Telemetry Radio v2](http://ardupilot.org/copter/docs/common-sik-telemetry-radio.html), which provides a long range 915 MHz wireless link to the timing gate. However, LapRSSI supports other TTL-level UART devices as well, such as the FT232 USB-Serial adapter, or the HC-06 Bluetooth Serial module.
 
-#Introduction
-The main goal of this project is to add a 5.8ghz video RSSI hardware solution to [MultiGP Lapsync](https://www.facebook.com/groups/FPVRaceTimer/). 
-
-This project is intended to supply a DIY hardware design and associated software. 
-
-## Table of Contents
-1. [Features](#features)
-2. [Usage](#usage)
-3. [Hardware](#hardware)
-4. [Software](#software)
-5. [Contributing](#contributing)
-6. [License](#license)
-
-
-##Features
-The following are the planned features to be incorperated into MultiGP Lapsync for use with LapRSSI. Incorperation is at the discression of the Lapsync developer. The project is still in the beta phase and so most of the features below still need to be incorperated.
-
-- **Pilot Count** - The number of pilots for each heat will set the number of receivers used. This will be hardware limited by how many receivers are installed.
-- **Pilot Frequency** - The there will be a video frequency field for each pilot in Lapsync that will then update the frequency of each receiver.
-- **RSSI Threshold** - A RSSI trivver value will need to be set in Lapsync for each pilot. This can be changed to match the pilots equipment.
-- **RSSI Calibrate** - A button for each pilot will allow an automatic callibration of the RSSI trigger.
-- **Frequency Scanner** - A feature will be added to Lapsync that will show a graph of the RSSI value for all 40 frequency channels. 
-
-##Usage
-
-- **Hardware** - The assembled hardware will connect to a computer via a USB cable. A USB-CAT5-USB setup can extende the distance from the computer to the hardware assembly. A USB wireless connection can also be used.
-  The receivers will require a ~12v power supply. A 3x Li-po battery works great.
-- **Software** - Once the software is uploaded to the hardware it will run automatically.
-
-
-##Software Installation
-- ** -Download [Arduino version 1.6.12](https://www.arduino.cc/en/Main/OldSoftwareReleases#previous)
-- ** -Go to the [PJRC Teensyduino installation](http://www.pjrc.com/teensy/td_download.html) page. Download Teensyduino and follow the instructions. This will setup the Arduino software to work with the Teensy.
-- ** -Download the latest release of LapRSSI.ino and open it in arduino. (This file needs to go into a folder with the same name as the file. The folder needs to go into your Arduino folder.
-- ** -Down load the three library files. (channels.h, RX5808spi & pinAssignments) These need to go into folders with the same names as the files. The folder needs to go into your Library folder under the Arduino folder.
-- ** -Click the UPLOAD button. The code will compile and upload to the Teensy.
-- ** -Wire the receiver(s) to the teensy and then proceed with the initial setup.
-
-
-##Initial Setup
-When powering on for the first time it is best to calibrate your RSSI modules. No two modules have the same RSSI min and max readings. To calibrate follow these steps below. You can repeat this process as many times as needed.
-
-1. Connect the hardware assembly to your computer with a USB cable.
-2. Plug your ~12v power supply into the hardware assembly to power the receivers.
-3. Open Device manager on your computer and see what COM port has been assigned.
-4. Open Lapsync.
-5. Go to Edit>Options and enter in the COM port value.
-6. Click on the open COM port button or go to File>Open COM Port.
-
-##Hardware
-This project is centered around the [Tensy 3.2](https://www.pjrc.com/store/teensy32.html). It is a faster version of an Arduino.
-
-The project also is designed to use the [rx5808 5.8ghz receiver module](https://www.foxtechfpv.com/product/5.8G%20modules/rx5808/RX5808-Spec-V1.pdf) which can be found at a number of online stores. The number of modules can be varied from 1 to 8.
-
-The SPI output to change the frequency are using the Digital pins 0 - 7 for the receiver (slave select), 10 for the data and 11 for clock.
-
-The rssi inputs are on analog pins 0 - 7.
-
-##Software
-The software uses SPI to allow the 8 channel receiver to be able change to any of the 40 channels that are standard usage. It reads the RSSI value from each receiver and when it detects a value higher than the associated threshold it will send a string to Lapsync triggering a lap count.
-
-A heartbeat is sent to Lapsync on 1 second intervals so the software knows it is in constant communication with the hardware.
-
-The lap trigger is stored until the next heartbeat and then they are sent one at a time to Lapsync in the order received in the case that triggers are received from multiple receivers.
-
-##Contributing
-Contributors are welcome. We ask that you submit your ideas to the team for review.
-
+Peak detection is performed on the RSSI signal output on each RX5808 receiver, and the system performs an auto-calibrate sequence at the beginning of each race, in order to determine appropriate signal levels for each transmitted video signal.
 
 ##License & Recognition
-####Recognition
-Much of the inspiration of this project came from the [rx5808-pro-diversity](https://github.com/sheaivey/rx5808-pro-diversity) project and the ability to tune a RX module with SPI. This project in turn based its SPI driver fs_skyrf_58g-main.c Written by Simon Chambers.\
+###Recognition
+The main inspiration for this project came from the excellent [Delta 5 Race Timer](https://github.com/scottgchin/delta5_race_timer) by Scott Chin. Credit goes to Scott for conceiving the peak detection and auto-calibration algorithms, on which LapRSSI is based.
 
-Special thanks to LapSync for working with us to integrate this project with their software.
+The [rx5808-pro-diversity](https://github.com/sheaivey/rx5808-pro-diversity) project by Shea Ivey provided insight into the capability to control the RX5808 module via SPI. Credit goes to Shea for the RX5808 frequency tables, which are incorporated into LapRSSI.
 
-####License
-The MIT License (MIT)
+Credit goes to Mike Bailey a.k.a. [Hyper-Quad](https://github.com/Hyper-Quad) for the "LapRSSI" name, and also for first conceiving the idea to control 8 RX5808 modules with a single Teensy microcontroller.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Special thanks to  [LiveTime](https://www.livetimescoring.com/) for integrating support for LapRSSI into their lap timing software.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+###License
+GNU GPLv3
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+LapRSSI - RF Based Lap Timing Device
+Copyright (C) 2017 Steve Lilly
+
+LapRSSI is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+LapRSSI is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with LapRSSI.  If not, see <http://www.gnu.org/licenses/>.
