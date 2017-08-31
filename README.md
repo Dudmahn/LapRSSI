@@ -3,7 +3,7 @@ LapRSSI is an 8-channel timing device for FPV racing that utilizes the 5.8 GHz a
 
 LapRSSI consists of a single PJRC Teensy 3.2 microcontroller that interfaces with 8 Boscam RX5808 receivers, and it communicates with the lap timing software via UART serial link. The preferred serial communication device is the [SiK/3DR  Telemetry Radio v2](http://ardupilot.org/copter/docs/common-sik-telemetry-radio.html), which provides a long range 915 MHz wireless link to the timing gate. However, LapRSSI supports other TTL-level UART devices as well, such as the FT232 USB-Serial adapter, or the HC-06 Bluetooth Serial module.
 
-Peak detection is performed on the RSSI signal output on each RX5808 receiver, and the system performs an auto-calibrate sequence at the beginning of each race, in order to determine appropriate signal levels for each transmitted video signal.
+Peak detection is performed on the RSSI signal output on each RX5808 receiver, and the system performs an auto-calibrate sequence at the beginning of each race, in order to determine appropriate signal thresholds for each aircraft.
 
 ## License & Recognition
 ### Recognition
