@@ -157,10 +157,10 @@ def processSerialMsg(msg):
             updatePlot()
 
             # Play beep
-            beepThreadPool.start(beepWorkerThread())
+            #beepThreadPool.start(beepWorkerThread())
 
             # Announce lap time
-            speechThreadPool.start(speechWorkerThread(idx + 1, lapCount, lapTime))
+            #speechThreadPool.start(speechWorkerThread(idx + 1, lapCount, lapTime))
 
 
 def updatePlot():
@@ -216,7 +216,13 @@ class serialThread(pg.QtCore.QThread):
             print('Error opening com port ', comPort)
 
         print('graph_rssi.py serialThread starting up...')
-        
+
+        # Reset the race timer
+        ser.write('#RAC\r\n'.encode('utf-8'))
+        time.sleep(1.000)
+
+        ser.reset_input_buffer()
+
         # Set frequencies
         ser.write('#FRA\t5658\t5695\t5760\t5800\t5880\t5917\t5917\t5917\r\n'.encode('utf-8'))   # IMD6C
         #ser.write('#FRA\t5658\t5695\t5732\t5769\t5806\t5843\t5880\t5917\r\n'.encode('utf-8'))   # Raceband 8
@@ -228,11 +234,9 @@ class serialThread(pg.QtCore.QThread):
         #    cal_offset
         #    cal_thresh
         #    trig_thresh
-        ser.write('#CFG\t250\t100\t300\t100\r\n'.encode('utf-8'))
+        ser.write('#CFG\t250\t100\t300\t50\r\n'.encode('utf-8'))
         time.sleep(0.250)
-
-        ser.reset_input_buffer()
-
+        
         # Query version
         ser.write('?VER\r\n'.encode('utf-8'))
         time.sleep(0.250)
@@ -248,9 +252,6 @@ class serialThread(pg.QtCore.QThread):
         # Query initial RSSIs
         ser.write('?RSS\r\n'.encode('utf-8'))
         time.sleep(0.250)
-        
-        # Reset the race timer
-        ser.write('#RAC\r\n'.encode('utf-8'))
         
         # Read data from serial port
         while True:
