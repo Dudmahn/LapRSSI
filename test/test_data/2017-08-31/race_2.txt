@@ -1,0 +1,19 @@
+Python 3.5.0 (v3.5.0:374f501f4567, Sep 13 2015, 02:27:37) [MSC v.1900 64 bit (AMD64)] on win32
+Type "copyright", "credits" or "license()" for more information.
+>>> 
+ RESTART: C:\Users\Steve\Documents\Google Drive\Arduino\Arduino\LapRSSI\test\python_test_app\graph_rssi.py 
+>>> graph_rssi.py serialThread starting up...
+@FRA	5658	5695	5760	5800	5880	5917	5917	5917
+@CFG	250	100	300	50
+@VER	1.2	1.1_alpha
+@CFG	250	100	300	50
+@FRA	5658	5695	5760	5800	5880	5917	5917	5917
+%LAP	7	1.700	1	0	1.700	796	696	646
+@RSS	7	2.296	206	402	0	123	8			
+%LAP	7	5.277	0	0	5.277	855	755	705
+%LAP	7	7.884	3	0	7.884	890	790	740
+%LAP	7	30.801	0	1	25.524	869	755	705
+%LAP	7	36.606	3	1	28.722	864	790	740
+%LAP	7	63.248	0	2	32.447	880	755	705
+%LAP	7	95.810	0	3	32.562	818	755	705
+%LAP	7	116.264	0	4	20.454	765	755	705
