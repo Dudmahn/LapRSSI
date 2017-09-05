@@ -38,7 +38,7 @@
 #define ADC_FILTER_BITS                   5     // 2^5 = 32 samples
 
 //#define RSSI_SMOOTHING_CONSTANT           0.004f      // This value was used during 8/24/17 testing, and seemed to work ok
-#define RSSI_SMOOTHING_CONSTANT           0.006f        // Testing 8/25/17: Reduce the amount of smoothing for a faster response
+#define RSSI_SMOOTHING_CONSTANT           0.008f        // Testing 8/25/17: Reduce the amount of smoothing for a faster response
 
 #define HEARTBEAT_REPORT_INTERVAL         1000
 #define RSSI_REPORT_INTERVAL_DEFAULT      1000
@@ -203,6 +203,8 @@ void setup() {
 
   for (i = 0; i < MAX_RX_NODES; i++) {
     rxNodes[i].enabled = defaultEnabledNodes[i];
+
+    initRxModuleRegisters(i);
     setRxModuleFreq(i, defaultFrequencies[i]);
   }
 
@@ -656,6 +658,14 @@ void printMsValAsFloat(Stream &s, uint32_t msVal) {
     s.print("0");
   }
   s.print(frac_part);
+}
+
+// Initialize receiver module registers
+void initRxModuleRegisters(int rxNode) {
+
+  // Attempt at disabling auto gain control to obtain a more even response
+  writeSPIReg(rxNode, RTC6715_RECEIVER_CTRL_REG_1, 0b00000000000000000000);
+  writeSPIReg(rxNode, RTC6715_RECEIVER_CTRL_REG_2, 0b00010010000000011000);
 }
 
 // Set the frequency for the specified receiver node
