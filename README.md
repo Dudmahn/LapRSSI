@@ -1,3 +1,5 @@
+![LapRSSI Logo](https://github.com/Dudmahn/LapRSSI/blob/master/images/laprssi_logo.png)
+
 # LapRSSI - RF Based Lap Timing Device
 LapRSSI is an 8-channel timing device for FPV racing that utilizes the 5.8 GHz analog video signal from the aircraft to perform lap detection. It is intended to be inexpensive, easy to build, and easy to maintain. It functions as a hardware timing device in combination with a PC-based lap timing software such as [LiveTime FPV](https://www.livetimescoring.com/).
 
