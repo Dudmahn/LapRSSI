@@ -31,7 +31,7 @@ historySeconds = 150.0
 
 
 # Initialize TTS engine
-tts = pyttsx3.init()
+#####tts = pyttsx3.init()
 
 # Initialize graphing engine
 win = pg.GraphicsWindow(title='LapRSSI Plotter')
@@ -98,11 +98,11 @@ def processSerialMsg(msg):
 
     if fields[0] == '@FRA':
         if len(fields) == 9:
-            freq1 = int(fields[2])
-            freq2 = int(fields[3])
-            freq3 = int(fields[4])
-            freq4 = int(fields[5])
-            freq5 = int(fields[6])
+            freq1 = int(fields[1])
+            freq2 = int(fields[2])
+            freq3 = int(fields[3])
+            freq4 = int(fields[4])
+            freq5 = int(fields[5])
 
     elif fields[0] == '%RSS':
         if len(fields) == 11:
@@ -224,7 +224,8 @@ class serialThread(pg.QtCore.QThread):
         ser.reset_input_buffer()
 
         # Set frequencies
-        ser.write('#FRA\t5658\t5695\t5760\t5800\t5880\t5917\t5917\t5917\r\n'.encode('utf-8'))   # IMD6C
+        ser.write('#FRA\t5800\t5800\t5800\t5800\t5800\t5800\t5800\t5800\r\n'.encode('utf-8'))   # All Fatshark 4
+        #ser.write('#FRA\t5658\t5695\t5760\t5800\t5880\t5917\t5917\t5917\r\n'.encode('utf-8'))   # IMD6C
         #ser.write('#FRA\t5658\t5695\t5732\t5769\t5806\t5843\t5880\t5917\r\n'.encode('utf-8'))   # Raceband 8
         #ser.write('#FRA\t5658\t5658\t5658\t5658\t5658\t5658\t5658\t5658\r\n'.encode('utf-8'))   # All Raceband 1
         time.sleep(0.250)
@@ -234,7 +235,7 @@ class serialThread(pg.QtCore.QThread):
         #    cal_offset
         #    cal_thresh
         #    trig_thresh
-        ser.write('#CFG\t250\t100\t300\t50\r\n'.encode('utf-8'))
+        ser.write('#CFG\t250\t140\t300\t100\r\n'.encode('utf-8'))
         time.sleep(0.250)
         
         # Query version
