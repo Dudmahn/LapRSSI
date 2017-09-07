@@ -21,13 +21,14 @@
 #include <errno.h>
 #include <limits.h>
 #include <ADC.h>
+#include <RingBufCPP.h>
 #include <SPI.h>  // include the new SPI library
 
 ////////////////////////////////////////////////////////////////////////////////
 // Defines / Macros
 ////////////////////////////////////////////////////////////////////////////////
-#define FIRMWARE_VERSION                  "1.1_alpha"
-#define PROTOCOL_VERSION                  "1.2"
+#define FIRMWARE_VERSION                  "1.2_alpha"
+#define PROTOCOL_VERSION                  "1.3"
 
 #define MAX_RX_NODES                      8
 #define ADC_RESOLUTION                    10
@@ -38,6 +39,8 @@
 #define ADC_FILTER_BITS                   5     // 2^5 = 32 samples
 
 #define SERIAL_BAUD_RATE                  19200
+#define SERIAL_TX_MSG_MAX_LEN             64            // Max size of a single serial message
+#define SERIAL_TX_MSG_QUEUE_LEN           10            // Queue up to 10 serial messages before dropping them
 
 //#define RSSI_SMOOTHING_CONSTANT           0.004f      // This value was used during 8/24/17 testing, and seemed to work ok
 #define RSSI_SMOOTHING_CONSTANT           0.008f        // Testing 8/25/17: Reduce the amount of smoothing for a faster response
@@ -99,6 +102,11 @@ typedef struct {
   int lapPeakRssiSmoothed;
 } rxNodeState_t;
 
+// Structure used to queue up serial messages for transmission
+typedef struct {
+  int8_t len;
+  char buf[SERIAL_TX_MSG_MAX_LEN];
+} serialTxMsg_t;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Variables
@@ -117,6 +125,9 @@ const SPISettings spiSettings(4000000, LSBFIRST, SPI_MODE0);
 // ADC related variables
 ADC *adc;
 const int rssiPins[MAX_RX_NODES] = { A1, A2, A3, A4, A5, A7, A8, A9 };
+
+// UART related variables
+RingBufCPP<serialTxMsg_t, SERIAL_TX_MSG_QUEUE_LEN> serialTxMsgQueue;
 
 // Global state parameters
 int raceNumber = 0;
@@ -174,6 +185,7 @@ void setup() {
 
   // UART setup
   Serial1.begin(SERIAL_BAUD_RATE);
+  while (!Serial1) ; // wait until serial port is running
 
   // GPIO pin setup
   pinMode(ledPin, OUTPUT);
@@ -324,18 +336,33 @@ void loop() {
     measurementCount = 0;
   }
 
-
   // Periodic RSSI report
-  if ((cfg.rssiReportIntervalMs) && (rssiReportTimer >= cfg.rssiReportIntervalMs)) {
+  if ((cfg.rssiReportIntervalMs) && (rssiReportTimer >= (uint32_t) cfg.rssiReportIntervalMs)) {
     rssiReportTimer = 0;
     sendMsgRSS(true);
+  }
+
+  // Send a queued serial message, if space is available
+  handleQueuedSerialTxMsg();
+}
+
+// Send a single queued serial message, but only if space is available in the transmit buffer
+// This avoids blocking, to prevent delays in the peak detection algorithm.
+void handleQueuedSerialTxMsg() {
+  if (! serialTxMsgQueue.isEmpty()) {
+    serialTxMsg_t *pMsg = serialTxMsgQueue.peek(0);
+    if (Serial1.availableForWrite() >= pMsg->len) {
+      serialTxMsg_t msg;
+      serialTxMsgQueue.pull(&msg);
+      Serial1.print(msg.buf);
+    }
   }
 }
 
 // State machine to handle incoming messages
 void rxMessageStateMachine() {
   const int RX_MSG_BUF_SIZE = 64;
-  typedef enum rxState_e { RX_STATE_IDLE, RX_STATE_RECEIVING, RX_STATE_WAIT_NEWLINE, RX_STATE_ERROR };
+  enum rxState_e { RX_STATE_IDLE, RX_STATE_RECEIVING, RX_STATE_WAIT_NEWLINE, RX_STATE_ERROR };
   static rxState_e rxState = RX_STATE_IDLE;
   static int rxMsgLen = 0;
   static char rxMsgBuf[RX_MSG_BUF_SIZE];
@@ -393,12 +420,7 @@ void processRxMessage(char *msg, int len) {
     // Process queries
     if (! strncmp(&msg[1], "VER", 3)) {
       ////////////////////////////////////////////////////////////////////// ?VER
-      Serial1.print("@VER");
-      Serial1.print("\t");
-      Serial1.print(PROTOCOL_VERSION);
-      Serial1.print("\t");
-      Serial1.print(FIRMWARE_VERSION);
-      Serial1.println();
+      sendMsgVER();
     }
     else if (! strncmp(&msg[1], "FRA", 3)) {
       ////////////////////////////////////////////////////////////////////// ?FRA
@@ -487,109 +509,136 @@ void processRxMessage(char *msg, int len) {
 #endif
 }
 
-void sendMsgFRA() {
-  int i;
+void sendMsgVER() {
+  serialTxMsg_t msg;
+  int len;
+  
+  len = sprintf(msg.buf, "%s\t%s\t%s\r\n",
+                "@VER",
+                PROTOCOL_VERSION,
+                FIRMWARE_VERSION);
+                
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
+}
 
-  Serial1.print("@FRA");
+void sendMsgFRA() {
+  serialTxMsg_t msg;
+  int len;
+  int i;
+    
+  len = sprintf(msg.buf, "%s", "@FRA");
+  
   for (i = 0; i < MAX_RX_NODES; i++) {
-    Serial1.print("\t");
-    Serial1.print(rxNodes[i].freq);
+    len += sprintf(msg.buf + len, "\t%d", rxNodes[i].freq);
   }
-  Serial1.println();
+  
+  len += sprintf(msg.buf + len, "\r\n");
+  
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
 }
 
 void sendMsgREN() {
+  serialTxMsg_t msg;
+  int len;
   int i;
-
-  Serial1.print("@REN");
+    
+  len = sprintf(msg.buf, "%s", "@REN");
+  
   for (i = 0; i < MAX_RX_NODES; i++) {
-    Serial1.print("\t");
-    Serial1.print(rxNodes[i].enabled);
+    len += sprintf(msg.buf + len, "\t%d", rxNodes[i].enabled);
   }
-  Serial1.println();
+  
+  len += sprintf(msg.buf + len, "\r\n");
+  
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
 }
 
 void sendMsgCFG() {
-  Serial1.print("@CFG");
-  Serial1.print("\t");
-  Serial1.print(cfg.rssiReportIntervalMs);
-  Serial1.print("\t");
-  Serial1.print(cfg.calOffset);
-  Serial1.print("\t");
-  Serial1.print(cfg.calThresh);
-  Serial1.print("\t");
-  Serial1.print(cfg.trigThresh);
-  Serial1.println();
+  serialTxMsg_t msg;
+  int len;
+  
+  len = sprintf(msg.buf, "%s\t%d\t%d\t%d\t%d\r\n",
+                "@CFG",
+                cfg.rssiReportIntervalMs,
+                cfg.calOffset,
+                cfg.calThresh,
+                cfg.trigThresh);
+                
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
 }
 
 void sendMsgRAC() {
-  Serial1.print("@RAC");
-  Serial1.print("\t");
-  Serial1.print(raceNumber);
-  Serial1.print("\t");
-  printMsValAsFloat(Serial1, raceTimer);
-  Serial1.println();
+  serialTxMsg_t msg;
+  int len;
+  
+  len = sprintf(msg.buf, "%s\t%d\t%lu.%.3lu\r\n",
+                "@RAC",
+                raceNumber,
+                raceTimer / 1000, raceTimer % 1000);
+                
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
 }
 
 void sendMsgHRT() {
-  Serial1.print("%HRT");
-  Serial1.print("\t");
-  Serial1.print(raceNumber);
-  Serial1.print("\t");
-  printMsValAsFloat(Serial1, raceTimer);
-  Serial1.print("\t");
-  Serial1.print(heartbeatCounter);
-  Serial1.print("\t");
-  Serial1.print(measurementCount);
-  Serial1.println();
+  serialTxMsg_t msg;
+  int len;
+  
+  len = sprintf(msg.buf, "%s\t%d\t%lu.%.3lu\t%d\r\n",
+                "%HRT",
+                raceNumber,
+                raceTimer / 1000, raceTimer % 1000,
+                heartbeatCounter);
+                
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
 }
 
 void sendMsgRSS(bool event) {
+  serialTxMsg_t msg;
+  int len;
   int i;
-
-  if (event) {
-    Serial1.print("%RSS");
-  }
-  else {
-    Serial1.print("@RSS");
-  }
-  Serial1.print("\t");
-  Serial1.print(raceNumber);
-  Serial1.print("\t");
-  printMsValAsFloat(Serial1, raceTimer);
+    
+  len = sprintf(msg.buf, "%s\t%d\t%lu.%.3lu",
+                event ? "%RSS" : "@RSS",
+                raceNumber,
+                raceTimer / 1000, raceTimer % 1000);
+                
   for (i = 0; i < MAX_RX_NODES; i++) {
-    Serial1.print("\t");
+    len += sprintf(msg.buf + len, "\t");
     if (rxNodes[i].enabled) {
-      Serial1.print((int) rxNodes[i].rssiPeakSmoothedForRSS);
+      len += sprintf(msg.buf + len, "%d", (int) rxNodes[i].rssiPeakSmoothedForRSS);
       rxNodes[i].rssiPeakSmoothedForRSS = 0;  // reset peak for next message
-      //Serial1.print((int) rxNodes[i].rssiSmoothed);
-      //Serial1.print((int) rxNodes[i].rssiRaw);
     }
   }
-  Serial1.println();
+  
+  len += sprintf(msg.buf + len, "\r\n");
+  
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
 }
 
 void sendMsgLAP(int rxNode) {
-  Serial1.print("%LAP");
-  Serial1.print("\t");
-  Serial1.print(raceNumber);
-  Serial1.print("\t");
-  printMsValAsFloat(Serial1, rxNodes[rxNode].lapTimestamp);
-  Serial1.print("\t");
-  Serial1.print(rxNode);
-  Serial1.print("\t");
-  Serial1.print(rxNodes[rxNode].lapCount);
-  Serial1.print("\t");
-  printMsValAsFloat(Serial1, rxNodes[rxNode].lapTime);
-  //Serial1.print("\t");
-  //Serial1.print(rxNodes[rxNode].lapPeakRssiRaw);
-  Serial1.print("\t");
-  Serial1.print(rxNodes[rxNode].lapPeakRssiSmoothed);
-  Serial1.print("\t");
-  Serial1.print(rxNodes[rxNode].rssiTrigger);
-  Serial1.print("\t");
-  Serial1.print(rxNodes[rxNode].rssiTrigger - cfg.trigThresh);
-  Serial1.println();
+  serialTxMsg_t msg;
+  int len;
+  
+  len = sprintf(msg.buf, "%s\t%d\t%d.%.3d\t%d\t%d\t%d.%.3d\t%d\t%d\t%d\r\n",
+                "%LAP",
+                raceNumber,
+                rxNodes[rxNode].lapTimestamp / 1000, rxNodes[rxNode].lapTimestamp % 1000,
+                rxNode,
+                rxNodes[rxNode].lapCount,
+                rxNodes[rxNode].lapTime / 1000, rxNodes[rxNode].lapTime % 1000,
+                rxNodes[rxNode].lapPeakRssiSmoothed,
+                rxNodes[rxNode].rssiTrigger,
+                rxNodes[rxNode].rssiTrigger - cfg.trigThresh);
+                
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
 }
 
 // Reset all race timer related data for all receiver nodes
@@ -625,7 +674,7 @@ bool convertToInt(const char *str, int &result, int min, int max, bool allowZero
   errno = 0;
   n = strtol(str, &endPtr, 10);
   if ((errno != ERANGE) && (*endPtr == 0) && (str != endPtr)) {
-    if ((allowZero && (n == 0)) || (n >= min) && (n <= max)) {
+    if (((allowZero && (n == 0))) || ((n >= min) && (n <= max))) {
       result = (int) n;
       success = true;
     }
@@ -648,21 +697,6 @@ int splitFields(char *msg, const char *fields[], int maxFields) {
   return n;
 }
 
-// Helper function to print a milliseconds counter value as a floating point number in S.MMM format
-void printMsValAsFloat(Stream &s, uint32_t msVal) {
-  uint16_t frac_part = msVal % 1000;
-
-  s.print(msVal / 1000);
-  s.print(".");
-  if(frac_part < 100) {
-    s.print("0");
-  }
-  if(frac_part < 10) {
-    s.print("0");
-  }
-  s.print(frac_part);
-}
-
 // Initialize receiver module registers
 void initRxModuleRegisters(int rxNode) {
 
@@ -675,7 +709,7 @@ void initRxModuleRegisters(int rxNode) {
 void setRxModuleFreq(int rxNode, int frequency) {
   int i;
 
-  for (i = 0; i < sizeof(vtxFreqTable); i++) {
+  for (i = 0; i < (int) sizeof(vtxFreqTable); i++) {
     if (frequency == vtxFreqTable[i]) {
       rxNodes[rxNode].freq = frequency;
       writeSPIReg(rxNode, RTC6715_SYNTH_REG_B, vtxHexTable[i]);
