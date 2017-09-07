@@ -31,7 +31,7 @@ historySeconds = 150.0
 
 
 # Initialize TTS engine
-#####tts = pyttsx3.init()
+tts = pyttsx3.init()
 
 # Initialize graphing engine
 win = pg.GraphicsWindow(title='LapRSSI Plotter')
@@ -157,10 +157,10 @@ def processSerialMsg(msg):
             updatePlot()
 
             # Play beep
-            #beepThreadPool.start(beepWorkerThread())
+            beepThreadPool.start(beepWorkerThread())
 
             # Announce lap time
-            #speechThreadPool.start(speechWorkerThread(idx + 1, lapCount, lapTime))
+            ####speechThreadPool.start(speechWorkerThread(idx + 1, lapCount, lapTime))
 
 
 def updatePlot():
@@ -224,8 +224,8 @@ class serialThread(pg.QtCore.QThread):
         ser.reset_input_buffer()
 
         # Set frequencies
-        ser.write('#FRA\t5800\t5800\t5800\t5800\t5800\t5800\t5800\t5800\r\n'.encode('utf-8'))   # All Fatshark 4
-        #ser.write('#FRA\t5658\t5695\t5760\t5800\t5880\t5917\t5917\t5917\r\n'.encode('utf-8'))   # IMD6C
+        #ser.write('#FRA\t5800\t5800\t5800\t5800\t5800\t5800\t5800\t5800\r\n'.encode('utf-8'))   # All Fatshark 4
+        ser.write('#FRA\t5658\t5695\t5760\t5800\t5880\t5917\t5917\t5917\r\n'.encode('utf-8'))   # IMD6C
         #ser.write('#FRA\t5658\t5695\t5732\t5769\t5806\t5843\t5880\t5917\r\n'.encode('utf-8'))   # Raceband 8
         #ser.write('#FRA\t5658\t5658\t5658\t5658\t5658\t5658\t5658\t5658\r\n'.encode('utf-8'))   # All Raceband 1
         time.sleep(0.250)
