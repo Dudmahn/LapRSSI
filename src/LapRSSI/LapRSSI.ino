@@ -37,6 +37,8 @@
 #define ADC_DIVIDER                       4
 #define ADC_FILTER_BITS                   5     // 2^5 = 32 samples
 
+#define SERIAL_BAUD_RATE                  19200
+
 //#define RSSI_SMOOTHING_CONSTANT           0.004f      // This value was used during 8/24/17 testing, and seemed to work ok
 #define RSSI_SMOOTHING_CONSTANT           0.008f        // Testing 8/25/17: Reduce the amount of smoothing for a faster response
 
@@ -170,7 +172,8 @@ volatile int rssiValMovingAvgSums[MAX_RX_NODES];
 void setup() {
   int i;
 
-  Serial1.begin(115200);
+  // UART setup
+  Serial1.begin(SERIAL_BAUD_RATE);
 
   // GPIO pin setup
   pinMode(ledPin, OUTPUT);
