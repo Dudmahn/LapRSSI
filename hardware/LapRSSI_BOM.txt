@@ -1,0 +1,36 @@
+
+8x RX5808 Receiver Module w/SPI mod
+ - $6.36  http://www.ebay.com/itm/FPV-5-8G-Wireless-Audio-Video-Receiving-Module-for-Boscam-for-RX5808-/182506586914?hash=item2a7e3d8322:g:gNUAAOSwWxNY2lCa
+ -        https://www.ebay.com/sch/i.html?_from=R40&_trksid=p2380057.m570.l1313.TR0.TRC0.H0.Xrx5808.TRS0&_nkw=rx5808&_sacat=0
+
+1x Teensy 3.2
+ - $19.95 https://www.adafruit.com/product/2756
+
+1x Male Header Pins 0.1" break-away, 36-pin, pack of 10
+ - $4.95  https://www.adafruit.com/product/392
+
+2x Female Header Pins 0.1", 36-pin, pack of 5
+ - $2.95  https://www.adafruit.com/product/598
+
+1x Pololu 3.3V 2.6A Step-Down Voltage Regulator, D24V22F3
+ - $8.95  https://www.pololu.com/product/2857
+
+1x Pololu 5V 2.5A Step-Down Voltage Regulator, D24V22F5
+ - $8.95  https://www.pololu.com/product/2858
+
+8x Bourns Inc. Trimmer Potentiometer 1M ohm, 0.1" pitch, PV36W105C01B00
+ - $1.50  https://www.digikey.com/scripts/DkSearch/dksus.dll?Detail&itemSeq=237827287&uq=636403714499470973
+
+1x Holybro 100mW 915Mhz Telemetry Radio Set
+ - $35.00 http://www.getfpv.com/holybro-100mw-fpv-transceiver-telemetry-radio-set-915mhz.html
+
+1x XT60 Male Power Connector
+ - $4.49  http://www.getfpv.com/xt60-p7ower-connectors-5-pair.html
+
+1x LapRSSI PCB
+ - $10.00 (est.)
+
+
+Total
+=======================================
+$161.07 (not including shipping costs)
