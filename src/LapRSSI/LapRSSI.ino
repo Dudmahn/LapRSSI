@@ -27,7 +27,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Defines / Macros
 ////////////////////////////////////////////////////////////////////////////////
-#define FIRMWARE_VERSION                  "1.2_alpha"
+#define FIRMWARE_VERSION                  "1.3_alpha"
 #define PROTOCOL_VERSION                  "1.3"
 
 #define MAX_RX_NODES                      8
@@ -119,12 +119,12 @@ const int ledPin = 13;
 const int spiSCKPin = 14;         // SCK on alternate pin
 const int spiMOSIPin = 11;
 const int spiMISOPin = 12;
-const int spiSSPins[MAX_RX_NODES] = { 2, 3, 4, 5, 7, 8, 9, 10 };
+const int spiSSPins[MAX_RX_NODES] = { 2, 3, 4, 5, 6, 7, 8, 23 };
 const SPISettings spiSettings(4000000, LSBFIRST, SPI_MODE0);
 
 // ADC related variables
 ADC *adc;
-const int rssiPins[MAX_RX_NODES] = { A1, A2, A3, A4, A5, A7, A8, A9 };
+const int rssiPins[MAX_RX_NODES] = { A1, A2, A3, A4, A5, A6, A7, A8 };
 
 // UART related variables
 RingBufCPP<serialTxMsg_t, SERIAL_TX_MSG_QUEUE_LEN> serialTxMsgQueue;
