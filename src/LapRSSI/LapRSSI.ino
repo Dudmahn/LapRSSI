@@ -33,6 +33,7 @@
 #define MAX_RX_NODES                      8
 #define ADC_RESOLUTION                    10
 #define ADC_MAX                           ((1 << ADC_RESOLUTION) - 1)
+#define ADC_DETECT_THRESH                 350           // RSSI value must be above this level to detect an RX5808 module present
 #define ADC_OFFSET                        520
 #define ADC_MULTIPLIER                    9
 #define ADC_DIVIDER                       4
@@ -213,16 +214,26 @@ void setup() {
   adc->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED, ADC_0);
   adc->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED, ADC_0);
   adc->setAveraging(1, ADC_0);                                      // Disable averaging, because it causes additional delay
-  //adc->disableInterrupts(ADC_0);
-  adc->enableInterrupts(ADC_0);
 
   for (i = 0; i < MAX_RX_NODES; i++) {
+    // Determine if this RX5808 module is installed
+    //if (adc->analogRead(rssiPins[i], ADC_0) >= ADC_DETECT_THRESH) {
+    //  rxNodes[i].enabled = 1;
+    //}
     rxNodes[i].enabled = defaultEnabledNodes[i];
-
+    
     initRxModuleRegisters(i);
     setRxModuleFreq(i, defaultFrequencies[i]);
   }
 
+  for (i = 0; i < MAX_RX_NODES; i++) {
+    Serial1.print(rxNodes[i].enabled); Serial1.print(" "); 
+  }
+  Serial1.println();
+
+  //adc->disableInterrupts(ADC_0);
+  adc->enableInterrupts(ADC_0);
+  
   // Start ADC read on the first channel. The ISR routine adc0_isr() will be invoked when the
   // conversion is complete. The ISR will then read the result and trigger a conversion on the next channel.
   adc->startSingleRead(rssiPins[0], ADC_0);
