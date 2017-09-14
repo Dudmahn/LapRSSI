@@ -25,13 +25,17 @@ import pyttsx3
 import winsound
 
 # Configuration
-#comPort = 'COM65'
-comPort = 'COM50'
+comPort = 'COM65'
+#comPort = 'COM50'
 historySeconds = 150.0
-
+sayTimes = False
+doBeep = True
 
 # Initialize TTS engine
 tts = pyttsx3.init()
+
+tts.say('graph r s s i starting up')
+tts.runAndWait()
 
 # Initialize graphing engine
 win = pg.GraphicsWindow(title='LapRSSI Plotter')
@@ -155,12 +159,14 @@ def processSerialMsg(msg):
                 threshHi5 = threshHi
                 addPoint(lap5, curTime, peakRssi)
             updatePlot()
+            
+            if doBeep:
+                # Play beep
+                beepThreadPool.start(beepWorkerThread())
 
-            # Play beep
-            beepThreadPool.start(beepWorkerThread())
-
-            # Announce lap time
-            ####speechThreadPool.start(speechWorkerThread(idx + 1, lapCount, lapTime))
+            if sayTimes:
+                # Announce lap time
+                speechThreadPool.start(speechWorkerThread(idx + 1, lapCount, lapTime))
 
 
 def updatePlot():
@@ -211,7 +217,7 @@ class serialThread(pg.QtCore.QThread):
     rxSerialMsgSignal = pg.QtCore.Signal(object)
     def run(self):
         try:
-            ser = serial.Serial(comPort, 115200, timeout=1)
+            ser = serial.Serial(comPort, 19200, timeout=1)
         except:
             print('Error opening com port ', comPort)
 
@@ -224,8 +230,9 @@ class serialThread(pg.QtCore.QThread):
         ser.reset_input_buffer()
 
         # Set frequencies
-        #ser.write('#FRA\t5800\t5800\t5800\t5800\t5800\t5800\t5800\t5800\r\n'.encode('utf-8'))   # All Fatshark 4
-        ser.write('#FRA\t5658\t5695\t5760\t5800\t5880\t5917\t5917\t5917\r\n'.encode('utf-8'))   # IMD6C
+        #ser.write('#FRA\t5806\t5925\t5843\t5752\t5695\t5917\t5917\t5917\r\n'.encode('utf-8'))   # Custom
+        ser.write('#FRA\t5800\t5800\t5800\t5800\t5800\t5800\t5800\t5800\r\n'.encode('utf-8'))   # All Fatshark 4
+        #ser.write('#FRA\t5658\t5695\t5760\t5800\t5880\t5917\t5917\t5917\r\n'.encode('utf-8'))   # IMD6C
         #ser.write('#FRA\t5658\t5695\t5732\t5769\t5806\t5843\t5880\t5917\r\n'.encode('utf-8'))   # Raceband 8
         #ser.write('#FRA\t5658\t5658\t5658\t5658\t5658\t5658\t5658\t5658\r\n'.encode('utf-8'))   # All Raceband 1
         time.sleep(0.250)
@@ -285,10 +292,10 @@ class speechWorkerThread(pg.QtCore.QRunnable):
         
 
 beepThreadPool = pg.QtCore.QThreadPool()
-beepThreadPool.setMaxThreadCount( 1 );
+beepThreadPool.setMaxThreadCount( 1 )
 
 speechThreadPool = pg.QtCore.QThreadPool()
-speechThreadPool.setMaxThreadCount( 1 );
+speechThreadPool.setMaxThreadCount( 1 )
 
 serialThread = serialThread()
 serialThread.rxSerialMsgSignal.connect(processSerialMsg)
