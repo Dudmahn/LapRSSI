@@ -1,0 +1,5 @@
+The LapRSSI sketch requires the following Arduino libraries:
+ - RingBufCPP
+ - 
+
+To install these, go to Sketch->Include Library->Manage Libraries...
