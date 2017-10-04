@@ -27,13 +27,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Defines / Macros
 ////////////////////////////////////////////////////////////////////////////////
-#define FIRMWARE_VERSION                  "1.3_alpha"
+#define FIRMWARE_VERSION                  "1.4"
 #define PROTOCOL_VERSION                  "1.3"
 
 #define MAX_RX_NODES                      8
 #define ADC_RESOLUTION                    10
 #define ADC_MAX                           ((1 << ADC_RESOLUTION) - 1)
-#define ADC_DETECT_THRESH                 350           // RSSI value must be above this level to detect an RX5808 module present
+#define ADC_DETECT_THRESH                 200           // RSSI value must be above this level to detect an RX5808 module present
 #define ADC_OFFSET                        520
 #define ADC_MULTIPLIER                    9
 #define ADC_DIVIDER                       4
@@ -164,7 +164,8 @@ const uint16_t vtxHexTable[] = {
   0x281D, 0x288F, 0x2902, 0x2914, 0x2987, 0x2999, 0x2A0C, 0x2A1E  // Band C / Raceband
 };
 
-const int defaultEnabledNodes[] = {    1,    1,    1,    1,    1,    0,    0,    0 };
+int installedNodes[] = { 0,    0,    0,    0,    0,    0,    0,    0 };
+
 const int defaultFrequencies[] =  { 5658, 5695, 5760, 5800, 5880, 5917, 5917, 5917 };     // IMD 6C
 //const int defaultFrequencies[] =  { 5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917 };    // Raceband 8
 //const int defaultFrequencies[] =  { 5658, 5658, 5658, 5658, 5658, 5658, 5658, 5658 };    // All Raceband 1
@@ -191,14 +192,14 @@ void setup() {
   // GPIO pin setup
   pinMode(ledPin, OUTPUT);
   for (i = 0; i < MAX_RX_NODES; i++) {
-    pinMode(rssiPins[i], INPUT);
+    pinMode(rssiPins[i], INPUT_PULLDOWN); // setup rssi pin initially with pulldown to detect if modules are installed
   }
 
   // SPI pins
   for (i = 0; i < MAX_RX_NODES; i++) {
     pinMode(spiSSPins[i], OUTPUT);
     digitalWrite (spiSSPins[i], HIGH);  // set SPI SS pin to idle (high)
-}
+  }
 
   // SPI setup
   SPI.setSCK(spiSCKPin);
@@ -209,29 +210,26 @@ void setup() {
   // ADC Setup
   adc = new ADC();
   adc->setResolution(ADC_RESOLUTION, ADC_0);
-  //adc->setReference(ADC_REFERENCE::REF_3V3, ADC_0);               // Use 3.3V internal reference without a pull-down on the RSSI pin
   adc->setReference(ADC_REFERENCE::REF_1V2, ADC_0);                 // Use internal 1.2V reference with a 100K pull-down on the RSSI pin
   adc->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED, ADC_0);
   adc->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED, ADC_0);
   adc->setAveraging(1, ADC_0);                                      // Disable averaging, because it causes additional delay
 
+  // Delay to let pulldown settle before attempting to detect presence of modules
+  delay(10);
+  
   for (i = 0; i < MAX_RX_NODES; i++) {
     // Determine if this RX5808 module is installed
-    //if (adc->analogRead(rssiPins[i], ADC_0) >= ADC_DETECT_THRESH) {
-    //  rxNodes[i].enabled = 1;
-    //}
-    rxNodes[i].enabled = defaultEnabledNodes[i];
-    
-    initRxModuleRegisters(i);
-    setRxModuleFreq(i, defaultFrequencies[i]);
+    if (adc->analogRead(rssiPins[i], ADC_0) >= ADC_DETECT_THRESH) {
+      installedNodes[i] = 1;
+      rxNodes[i].enabled = 1;
+      initRxModuleRegisters(i);
+      setRxModuleFreq(i, defaultFrequencies[i]);
+    }
+    pinMode(rssiPins[i], INPUT);  // remove pulldown
+    //rxNodes[i].enabled = defaultEnabledNodes[i];
   }
 
-  for (i = 0; i < MAX_RX_NODES; i++) {
-    Serial1.print(rxNodes[i].enabled); Serial1.print(" "); 
-  }
-  Serial1.println();
-
-  //adc->disableInterrupts(ADC_0);
   adc->enableInterrupts(ADC_0);
   
   // Start ADC read on the first channel. The ISR routine adc0_isr() will be invoked when the
@@ -471,8 +469,10 @@ void processRxMessage(char *msg, int len) {
       if (numFields == MAX_RX_NODES) {
         int freq;
         for (i = 0; i < MAX_RX_NODES; i++) {
-          if (convertToInt(fields[i], freq, FREQ_MIN, FREQ_MAX, false)) {
-            setRxModuleFreq(i, freq);
+          if (installedNodes[i]) {
+            if (convertToInt(fields[i], freq, FREQ_MIN, FREQ_MAX, false)) {
+              setRxModuleFreq(i, freq);
+            }
           }
         }
         sendMsgFRA();
@@ -482,7 +482,10 @@ void processRxMessage(char *msg, int len) {
       ////////////////////////////////////////////////////////////////////// #REN
       if (numFields == MAX_RX_NODES) {
         for (i = 0; i < MAX_RX_NODES; i++) {
-          convertToInt(fields[i], rxNodes[i].enabled, 0, 1, true);
+          if (installedNodes[i]) {
+            // Only allow enable on nodes that are installed
+            convertToInt(fields[i], rxNodes[i].enabled, 0, 1, true);
+          }
         }
         sendMsgREN();
       }
