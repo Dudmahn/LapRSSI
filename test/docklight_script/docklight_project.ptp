@@ -5,7 +5,7 @@ COMMSETTINGS
 0
 COM50
 COM11
-115200
+19200
 2
 0
 4
@@ -87,43 +87,71 @@ Receiver Enable Command (First five)
 
 SEND
 10
+Receiver Enable Command (w/Prompts)
+23 52 45 4E 09 ## 09 ## 09 ## 09 ## 09 ## 09 ## 09 ## 09 ## 0D 0A
+0
+5
+
+SEND
+11
 Config Query
 3F 43 46 47 0D 0A
 0
 5
 
 SEND
-11
-Config Command (RSSI 500ms)
-23 43 46 47 09 35 30 30 09 31 30 30 09 33 30 30 09 31 30 30 0D 0A
-0
-5
-
-SEND
 12
-Config Command (RSSI 250ms)
-23 43 46 47 09 32 35 30 09 31 30 30 09 33 30 30 09 31 30 30 0D 0A
+Config Command (RSSI 500ms)
+23 43 46 47 09 35 30 30 09 31 30 30 09 33 30 30 09 31 30 30 09 38 0D 0A
 0
 5
 
 SEND
 13
-Config Command (RSSI disabled)
-23 43 46 47 09 30 09 31 30 30 09 33 30 30 09 31 30 30 0D 0A
+Config Command (RSSI 250ms)
+23 43 46 47 09 32 35 30 09 31 30 30 09 33 30 30 09 31 30 30 09 38 0D 0A
 0
 5
 
 SEND
 14
+Config Command (RSSI disabled)
+23 43 46 47 09 30 09 31 30 30 09 33 30 30 09 31 30 09 38 0D 0A
+0
+5
+
+SEND
+15
+Config Command (w/prompts)
+23 43 46 47 09 ## ## ## ## 09 ## ## ## 09 ## ## ## 09 ## ## ## 09 ## ## ## 0D 0A
+0
+5
+
+SEND
+16
 Race Timer Command
 23 52 41 43 0D 0A
 0
 5
 
 SEND
-15
+17
 RSSI Query
 3F 52 53 53 0D 0A
+0
+5
+
+SEND
+18
+Reboot
+23 52 42 54 0D 0A
+0
+5
+
+SEND
+19
+Restore Default Settings
+23 44 46 54 0D 0A
 0
 5
 
