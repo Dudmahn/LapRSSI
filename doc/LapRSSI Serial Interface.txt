@@ -1,6 +1,6 @@
 LapRSSI Serial Interface Specification
-Protocol version 1.3
-Sept. 7, 2017
+Protocol version 1.4
+Oct. 10, 2017
 S. Lilly
 
 This document describes the serial interface protocol for the LapRSSI timing system.
@@ -69,9 +69,9 @@ Parameters:
 
 Config (CFG)
 ================================================================================
-#CFG	<rssi_report_interval>	<cal_offset>	<cal_thresh>	<trig_thresh>
+#CFG	<rssi_report_interval>	<cal_offset>	<cal_thresh>	<trig_thresh>	<rssi_filter_const>
 @CFG
-?CFG	<rssi_report_interval>	<cal_offset>	<cal_thresh>	<trig_thresh>
+?CFG	<rssi_report_interval>	<cal_offset>	<cal_thresh>	<trig_thresh>	<rssi_filter_const>
 
 Parameters:
  - rssi_report_interval: Specifies how often the RSSI report event message should
@@ -91,6 +91,13 @@ Parameters:
                 subsequent passes, to detect when the quad has passed the gate.
                 Integer with valid range from 0 to 1023. A blank or invalid value
                 will leave the current value unchanged.
+ - rssi_filter_const: RSSI smoothing filter constant, in units of 1/1000.
+                      Integer with valid range from 0 to 1000. Higher values
+                      produce a faster response to changes in RSSI, but may
+                      trigger unwanted laps. Lower values produce a smoother
+                      RSSI response, at the expense of additional delay, and
+                      the possibility of missing laps. Typical usable range is
+                      between 5 and 50.
 
 
 Race Timer (RAC)
@@ -162,3 +169,19 @@ Parameters:
                0=disabled, 1=enabled
  - message: Text message containing debug information (only occurs when debug
             messages are enabled)
+
+
+Reboot (RBT) - Reboot the timer.
+================================================================================
+#RBT
+@RBT
+
+Parameters: none
+
+
+Restore Defaults (DFT) - Restore default settings and reboot the timer.
+================================================================================
+#DFT
+@DFT
+
+Parameters: none
