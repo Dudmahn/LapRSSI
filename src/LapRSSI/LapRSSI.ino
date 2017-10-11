@@ -19,6 +19,7 @@
 //
 
 #include <errno.h>
+#include <EEPROM.h>
 #include <limits.h>
 #include <ADC.h>
 #include <RingBufCPP.h>
@@ -27,8 +28,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Defines / Macros
 ////////////////////////////////////////////////////////////////////////////////
-#define FIRMWARE_VERSION                  "1.4"
-#define PROTOCOL_VERSION                  "1.3"
+#define FIRMWARE_VERSION                  "1.5"
+#define PROTOCOL_VERSION                  "1.4"
+
+#define EEPROM_MAGIC_NUMBER               0xEE
+#define EEPROM_VERSION                    1
 
 #define MAX_RX_NODES                      8
 #define ADC_RESOLUTION                    10
@@ -42,9 +46,6 @@
 #define SERIAL_BAUD_RATE                  19200
 #define SERIAL_TX_MSG_MAX_LEN             64            // Max size of a single serial message
 #define SERIAL_TX_MSG_QUEUE_LEN           10            // Queue up to 10 serial messages before dropping them
-
-//#define RSSI_SMOOTHING_CONSTANT           0.004f      // This value was used during 8/24/17 testing, and seemed to work ok
-#define RSSI_SMOOTHING_CONSTANT           0.008f        // Testing 8/25/17: Reduce the amount of smoothing for a faster response
 
 #define HEARTBEAT_REPORT_INTERVAL         1000
 #define RSSI_REPORT_INTERVAL_DEFAULT      1000
@@ -64,6 +65,11 @@
 #define RTC6715_POWER_DOWN_CTRL_REG       0x0A
 #define RTC6715_STATE_REG                 0x0F
 
+// Definitions for restart CPU macro
+#define CPU_RESTART_ADDR (uint32_t *)0xE000ED0C
+#define CPU_RESTART_VAL 0x5FA0004
+#define CPU_REBOOT() (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Type Definitions
@@ -75,6 +81,7 @@ typedef struct {
   int calOffset;
   int calThresh;
   int trigThresh;
+  int rssiFilterConstant;
 } configParams_t;
 
 // Per receiver node state
@@ -113,6 +120,9 @@ typedef struct {
 // Variables
 ////////////////////////////////////////////////////////////////////////////////
 
+// Serial debug stream
+#define DebugSerial   Serial
+
 // GPIO related variables
 const int ledPin = 13;
 
@@ -140,9 +150,10 @@ elapsedMillis raceTimer;
 rxNodeState_t rxNodes[MAX_RX_NODES];
 configParams_t cfg = {
   .rssiReportIntervalMs = RSSI_REPORT_INTERVAL_DEFAULT,
-  .calOffset = 100,
+  .calOffset = 160,
   .calThresh = 300,
   .trigThresh = 100,
+  .rssiFilterConstant = 25    // in thousanths
 };
 
 // Define vtx frequencies in mhz and their hex code for setting the rx5808 module
@@ -163,12 +174,10 @@ const uint16_t vtxHexTable[] = {
   0x2906, 0x2910, 0x291A, 0x2984, 0x298E, 0x2998, 0x2A02, 0x2A0C, // Band F
   0x281D, 0x288F, 0x2902, 0x2914, 0x2987, 0x2999, 0x2A0C, 0x2A1E  // Band C / Raceband
 };
+#define NUM_VTX_TABLE_ENTRIES   (sizeof(vtxFreqTable) / sizeof(int))
 
 int installedNodes[] = { 0,    0,    0,    0,    0,    0,    0,    0 };
-
-const int defaultFrequencies[] =  { 5658, 5695, 5760, 5800, 5880, 5917, 5917, 5917 };     // IMD 6C
-//const int defaultFrequencies[] =  { 5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917 };    // Raceband 8
-//const int defaultFrequencies[] =  { 5658, 5658, 5658, 5658, 5658, 5658, 5658, 5658 };    // All Raceband 1
+const int defaultFrequencies[] =  { 5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917 };    // Raceband 8
 
 // This array contains the moving average (sum) for each receiver node. It is accessed
 // by the adc0 interrupt, and also by the backgroup loop. In order to prevent reading
@@ -185,10 +194,15 @@ volatile int rssiValMovingAvgSums[MAX_RX_NODES];
 void setup() {
   int i;
 
-  // UART setup
+  // Debug UART (USB Serial) setup
+  DebugSerial.begin(115200);
+  delay(1000);
+  DebugSerial.println("LapRSSI starting up...");
+  
+  // Hardware UART setup
   Serial1.begin(SERIAL_BAUD_RATE);
   while (!Serial1) ; // wait until serial port is running
-
+  
   // GPIO pin setup
   pinMode(ledPin, OUTPUT);
   for (i = 0; i < MAX_RX_NODES; i++) {
@@ -217,23 +231,33 @@ void setup() {
 
   // Delay to let pulldown settle before attempting to detect presence of modules
   delay(10);
-  
+
   for (i = 0; i < MAX_RX_NODES; i++) {
+    // Initialize default frequency
+    rxNodes[i].freq = defaultFrequencies[i];
+    
     // Determine if this RX5808 module is installed
     if (adc->analogRead(rssiPins[i], ADC_0) >= ADC_DETECT_THRESH) {
       installedNodes[i] = 1;
-      rxNodes[i].enabled = 1;
-      initRxModuleRegisters(i);
-      setRxModuleFreq(i, defaultFrequencies[i]);
+      rxNodes[i].enabled = 1; // may be overridden below when restoring from EEPROM
     }
     pinMode(rssiPins[i], INPUT);  // remove pulldown
-    //rxNodes[i].enabled = defaultEnabledNodes[i];
   }
 
-  adc->enableInterrupts(ADC_0);
-  
+  // Restore configuration, enabled/disable status, and frequencies from EEPROM
+  restoreFromEEPROM();
+
+  // Initialize receiver nodes
+  for (i = 0; i < MAX_RX_NODES; i++) {
+    if (installedNodes[i]) {
+      initRxModuleRegisters(i);
+      setRxModuleFreq(i, rxNodes[i].freq);
+    }
+  }
+ 
   // Start ADC read on the first channel. The ISR routine adc0_isr() will be invoked when the
   // conversion is complete. The ISR will then read the result and trigger a conversion on the next channel.
+  adc->enableInterrupts(ADC_0);
   adc->startSingleRead(rssiPins[0], ADC_0);
 
   // Schedule heartbeat timer to offset with RSSI reports
@@ -272,7 +296,7 @@ void loop() {
     for (i = 0; i < MAX_RX_NODES; i++) {
       // Divide the moving average RSSI sum (with rounding) to be the moving average
       rxNodes[i].rssiRaw = (sums[i] + (sums[i] >> (ADC_FILTER_BITS - 1))) >> ADC_FILTER_BITS;
-      rxNodes[i].rssiSmoothed = (rxNodes[i].rssiRaw * RSSI_SMOOTHING_CONSTANT) + (rxNodes[i].rssiSmoothed * (1.0 - RSSI_SMOOTHING_CONSTANT));
+      rxNodes[i].rssiSmoothed = (rxNodes[i].rssiRaw * (cfg.rssiFilterConstant / 1000.0)) + (rxNodes[i].rssiSmoothed * (1.0 - (cfg.rssiFilterConstant / 1000.0)));
 
       // Update peak smoothed RSSI value for the RSS message
       rxNodes[i].rssiPeakSmoothedForRSS = max(rxNodes[i].rssiPeakSmoothedForRSS, rxNodes[i].rssiSmoothed);
@@ -357,7 +381,8 @@ void loop() {
 
 // Send a single queued serial message, but only if space is available in the transmit buffer
 // This avoids blocking, to prevent delays in the peak detection algorithm.
-void handleQueuedSerialTxMsg() {
+// Returns true if there are messages still waiting to be send, false if the tx message queue is empty.
+bool handleQueuedSerialTxMsg() {
   if (! serialTxMsgQueue.isEmpty()) {
     serialTxMsg_t *pMsg = serialTxMsgQueue.peek(0);
     if (Serial1.availableForWrite() >= pMsg->len) {
@@ -365,6 +390,132 @@ void handleQueuedSerialTxMsg() {
       serialTxMsgQueue.pull(&msg);
       Serial1.print(msg.buf);
     }
+  }
+
+  return ! serialTxMsgQueue.isEmpty();
+}
+
+// Restore all settings from EEPROM, including config settings, rx node enabled state, and rx node frequencies
+// If the EEPROM contents is determined to be invalid via a simple magic number and version check, then the
+// EEPROM is intitialized with default values.
+void restoreFromEEPROM() {
+  int i, j;
+  int idx;
+  byte val;
+  int freq;
+  bool writeDefaults = false;
+  
+  DebugSerial.println("Restoring settings from EEPROM");
+
+  // Checkl EEPROM magic number
+  val = EEPROM.read(0);
+  if (val != EEPROM_MAGIC_NUMBER) {
+    DebugSerial.println("EEPROM magic number mismatch");
+    writeDefaults = true;
+  }
+  else {
+    // Check EEPROM version
+    val = EEPROM.read(1);
+    if (val != EEPROM_VERSION) {
+      DebugSerial.println("EEPROM version mismatch");
+      writeDefaults = true;
+    }
+  }
+  
+  // Clear the EEPROM settings area, if needed
+  if (writeDefaults) {
+    DebugSerial.println("Writing defaults to EEPROM");
+    
+    EEPROM.write(0, EEPROM_MAGIC_NUMBER);
+    EEPROM.write(1, EEPROM_VERSION);
+    
+    saveConfigToEEPROM();
+    saveRxEnableToEEPROM();
+    saveRxFrequenciesToEEPROM();
+  }
+
+  // Restore config settings
+  idx = 2;
+  for (i = 0; i < sizeof(cfg); i++) {
+    val = EEPROM.read(idx++);
+    ((byte *)(&cfg))[i] = val;
+  }
+
+  // Restore receiver enable/disable
+  for (i = 0; i < MAX_RX_NODES; i++) {
+    val = EEPROM.read(idx++);
+    if ((val != 0) && installedNodes[i]) {
+      rxNodes[i].enabled = 1;
+    }
+    else {
+      rxNodes[i].enabled = 0;
+    }
+  }
+  
+  // Restore frequencies
+  for (i = 0; i < MAX_RX_NODES; i++) {
+    freq = EEPROM.read(idx++);
+    freq |= EEPROM.read(idx++) << 8;
+    for (j = 0; j < NUM_VTX_TABLE_ENTRIES; j++) {
+      if (freq == vtxFreqTable[j]) {
+        rxNodes[i].freq = freq;
+        break;
+      }
+    }
+  }
+
+  DebugSerial.print("rssiReportIntervalMs: ");
+  DebugSerial.println(cfg.rssiReportIntervalMs);
+  DebugSerial.print("calOffset: ");
+  DebugSerial.println(cfg.calOffset);
+  DebugSerial.print("calThresh: ");
+  DebugSerial.println(cfg.calThresh);
+  DebugSerial.print("trigThresh: ");
+  DebugSerial.println(cfg.trigThresh);
+  DebugSerial.print("rssiFilterConstant: ");
+  DebugSerial.println(cfg.rssiFilterConstant);
+
+  for (i = 0; i < MAX_RX_NODES; i++) {
+    DebugSerial.print("node ");
+    DebugSerial.print(i);
+    DebugSerial.print(": enabled=");
+    DebugSerial.print(rxNodes[i].enabled);
+    DebugSerial.print(", freq=");
+    DebugSerial.println(rxNodes[i].freq);
+  }
+}
+
+void saveConfigToEEPROM() {
+  int i;
+  int idx;
+  
+  DebugSerial.println("Saving configuration to EEPROM");
+  idx = 2;
+  for (i = 0 ; i < sizeof(cfg); i++) {
+    EEPROM.write(idx++, ((byte *)(&cfg))[i]);
+  }
+}
+
+void saveRxEnableToEEPROM() {
+  int i;
+  int idx;
+
+  DebugSerial.println("Saving rx enables to EEPROM");
+  idx = 2 + sizeof(cfg);
+  for (i = 0; i < MAX_RX_NODES; i++) {
+    EEPROM.write(idx++, rxNodes[i].enabled);
+  }
+}
+
+void saveRxFrequenciesToEEPROM() {
+  int i;
+  int idx;
+
+  DebugSerial.println("Saving rx frequencies to EEPROM");
+  idx = 2 + sizeof(cfg) + MAX_RX_NODES;
+  for (i = 0; i < MAX_RX_NODES; i++) {
+    EEPROM.write(idx++, rxNodes[i].freq & 0xff);
+    EEPROM.write(idx++, (rxNodes[i].freq >> 8) & 0xff);
   }
 }
 
@@ -475,6 +626,7 @@ void processRxMessage(char *msg, int len) {
             }
           }
         }
+        saveRxFrequenciesToEEPROM();
         sendMsgFRA();
       }
     }
@@ -487,16 +639,19 @@ void processRxMessage(char *msg, int len) {
             convertToInt(fields[i], rxNodes[i].enabled, 0, 1, true);
           }
         }
+        saveRxEnableToEEPROM();
         sendMsgREN();
       }
     }
     else if (! strncmp(&msg[1], "CFG", 3)) {
       ////////////////////////////////////////////////////////////////////// #CFG
-      if (numFields == 4) {
+      if (numFields == 5) {
         convertToInt(fields[0], cfg.rssiReportIntervalMs, RSSI_REPORT_INTERVAL_MIN, 10000, true);
         convertToInt(fields[1], cfg.calOffset, 0, ADC_MAX, true);
         convertToInt(fields[2], cfg.calThresh, 0, ADC_MAX, true);
         convertToInt(fields[3], cfg.trigThresh, 0, ADC_MAX, true);
+        convertToInt(fields[4], cfg.rssiFilterConstant, 0, 1000, true);
+        saveConfigToEEPROM();
         sendMsgCFG();
       }
     }
@@ -509,6 +664,26 @@ void processRxMessage(char *msg, int len) {
         raceTimer = 0;          // reset race timer
         sendMsgRAC();
       }
+    }
+    else if (! strncmp(&msg[1], "RBT", 3)) {
+      ////////////////////////////////////////////////////////////////////// #RBT
+      // Reboot CPU
+      sendMsgRBT();
+      while (handleQueuedSerialTxMsg());  // make sure all pending message have been transmitted
+      DebugSerial.println("Rebooting...");
+      delay(100);
+      CPU_REBOOT();
+    }
+    else if (! strncmp(&msg[1], "DFT", 3)) {
+      ////////////////////////////////////////////////////////////////////// #DFT
+      // Revert to default settings and reboot
+      // Write invalid magic number to EEPROM, this will cause defaults to be written upon the next bootup
+      EEPROM.write(0, 0);
+      sendMsgDFT();
+      while (handleQueuedSerialTxMsg());  // make sure all pending message have been transmitted
+      DebugSerial.println("Rebooting...");
+      delay(100);
+      CPU_REBOOT();
     }
   }
 
@@ -574,12 +749,13 @@ void sendMsgCFG() {
   serialTxMsg_t msg;
   int len;
   
-  len = sprintf(msg.buf, "%s\t%d\t%d\t%d\t%d\r\n",
+  len = sprintf(msg.buf, "%s\t%d\t%d\t%d\t%d\t%d\r\n",
                 "@CFG",
                 cfg.rssiReportIntervalMs,
                 cfg.calOffset,
                 cfg.calThresh,
-                cfg.trigThresh);
+                cfg.trigThresh,
+                cfg.rssiFilterConstant);
                 
   msg.len = len;
   serialTxMsgQueue.add(msg);
@@ -655,6 +831,28 @@ void sendMsgLAP(int rxNode) {
   serialTxMsgQueue.add(msg);
 }
 
+void sendMsgRBT() {
+  serialTxMsg_t msg;
+  int len;
+  
+  len = sprintf(msg.buf, "%s\r\n",
+                "@RBT");
+                
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
+}
+
+void sendMsgDFT() {
+  serialTxMsg_t msg;
+  int len;
+  
+  len = sprintf(msg.buf, "%s\r\n",
+                "@DFT");
+                
+  msg.len = len;
+  serialTxMsgQueue.add(msg);
+}
+
 // Reset all race timer related data for all receiver nodes
 void resetAllRxNodes() {
   int i;
@@ -715,15 +913,15 @@ int splitFields(char *msg, const char *fields[], int maxFields) {
 void initRxModuleRegisters(int rxNode) {
 
   // Attempt at disabling auto gain control to obtain a more even response
-  writeSPIReg(rxNode, RTC6715_RECEIVER_CTRL_REG_1, 0b00000000000000000000);
-  writeSPIReg(rxNode, RTC6715_RECEIVER_CTRL_REG_2, 0b00010010000000011000);
+  //writeSPIReg(rxNode, RTC6715_RECEIVER_CTRL_REG_1, 0b00000000000000000000);
+  //writeSPIReg(rxNode, RTC6715_RECEIVER_CTRL_REG_2, 0b00010010000000011000);
 }
 
 // Set the frequency for the specified receiver node
 void setRxModuleFreq(int rxNode, int frequency) {
   int i;
 
-  for (i = 0; i < (int) sizeof(vtxFreqTable); i++) {
+  for (i = 0; i < NUM_VTX_TABLE_ENTRIES; i++) {
     if (frequency == vtxFreqTable[i]) {
       rxNodes[rxNode].freq = frequency;
       writeSPIReg(rxNode, RTC6715_SYNTH_REG_B, vtxHexTable[i]);
