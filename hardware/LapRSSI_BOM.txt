@@ -18,19 +18,25 @@
 1x Pololu 5V 2.5A Step-Down Voltage Regulator, D24V22F5
  - $8.95  https://www.pololu.com/product/2858
 
-8x Bourns Inc. Trimmer Potentiometer 1M ohm, 0.1" pitch, PV36W105C01B00
- - $1.50  https://www.digikey.com/scripts/DkSearch/dksus.dll?Detail&itemSeq=237827287&uq=636403714499470973
-
 1x Holybro 100mW 915Mhz Telemetry Radio Set
  - $35.00 http://www.getfpv.com/holybro-100mw-fpv-transceiver-telemetry-radio-set-915mhz.html
 
 1x XT60 Male Power Connector
- - $4.49  http://www.getfpv.com/xt60-p7ower-connectors-5-pair.html
+ - $4.49 http://www.getfpv.com/xt60-p7ower-connectors-5-pair.html
 
 1x LapRSSI PCB
  - $10.00 (est.)
 
+4x M3 Stainless Steel Nylock Hex Nuts
+ - $4.84 pack of 100 https://www.mcmaster.com/#93625a100/=19rm05i
+
+4x M3x30mm Stainless Steel Socket Head Screw
+ - $3.91 pack of 50 https://www.mcmaster.com/#91292a022/=19rm0h9
+
+1x 3D Printed LapRSSI case (top and bottom halves)
+ - TBD
+
 
 Total
 =======================================
-$161.07 (not including shipping costs)
+$157.82 (not including shipping costs)
