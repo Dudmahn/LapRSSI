@@ -1,6 +1,6 @@
 LapRSSI Serial Interface Specification
-Protocol version 1.4
-Oct. 10, 2017
+Protocol version 1.5
+Jan. 16, 2018
 S. Lilly
 
 This document describes the serial interface protocol for the LapRSSI timing system.
@@ -10,7 +10,7 @@ Communications are via UART at 19200 baud, 8/N/1.
 Each message begins with a message type character, followed by a 3-character
 message identifier, then (optionally) by a number of tab-delimited fields. Each
 message is terminated with a CRLF pair (\r\n). For example:
-    <T><MID>\t<field_1>\t<field_2>\t<field_3>\t<field_4>\r\n
+    <T><MID>\t<field_0>\t<field_1>\t<field_2>\t<field_3>\r\n
 where <T> is the message type character, <MID> is the message identifier,
 and <field_n> are message-specific parameters
 
@@ -43,9 +43,9 @@ Parameters:
 
 Frequency Assignment (FRA)
 ================================================================================
-#FRA	<freq_1>	<freq_2>	<freq_3>	<freq_4>	<freq_5>	<freq_6>	<freq_7>	<freq_8>
+#FRA	<freq_0>	<freq_1>	<freq_2>	<freq_3>	<freq_4>	<freq_5>	<freq_6>	<freq_7>
 ?FRA
-@FRA	<freq_1>	<freq_2>	<freq_3>	<freq_4>	<freq_5>	<freq_6>	<freq_7>	<freq_8>
+@FRA	<freq_0>	<freq_1>	<freq_2>	<freq_3>	<freq_4>	<freq_5>	<freq_6>	<freq_7>
 
 Parameters:
  - freq_n: Frequency to assign for the given receiver slot. Integer with valid
@@ -57,9 +57,9 @@ Parameters:
 
 Receiver Enable (REN)
 ================================================================================
-#REN	<rcvr_en_1>	<rcvr_en_2>	<rcvr_en_3>	<rcvr_en_4>	<rcvr_en_5>	<rcvr_en_6>	<rcvr_en_7>	<rcvr_en_8>
+#REN	<rcvr_en_0>	<rcvr_en_1>	<rcvr_en_2>	<rcvr_en_3>	<rcvr_en_4>	<rcvr_en_5>	<rcvr_en_6>	<rcvr_en_7>
 ?REN
-@REN	<rcvr_en_1>	<rcvr_en_2>	<rcvr_en_3>	<rcvr_en_4>	<rcvr_en_5>	<rcvr_en_6>	<rcvr_en_7>	<rcvr_en_8>
+@REN	<rcvr_en_0>	<rcvr_en_1>	<rcvr_en_2>	<rcvr_en_3>	<rcvr_en_4>	<rcvr_en_5>	<rcvr_en_6>	<rcvr_en_7>
 
 Parameters:
  - rcvr_en_n: Enable or Disable a receiver slot. 0=disabled, 1=enabled, and blank
@@ -75,7 +75,7 @@ Config (CFG)
 
 Parameters:
  - rssi_report_interval: Specifies how often the RSSI report event message should
-                         be sent from the timing system. Floating point, with 
+                         be sent from the timing system. Floating point, with
                          valid range from 250 (250ms) to 10000 (10 seconds).
                          A value of 0 disables RSSI report event messages. A blank
                          or invalid value with leave the current value unchanged.
@@ -127,9 +127,9 @@ Parameters:
 
 RSSI Report (RSS) - Interval is controlled by CFG->rssi_report_interval
 ================================================================================
-%RSS	<race_number>	<timer>	<rssi_1>	<rssi_2>	<rssi_3>	<rssi_4>	<rssi_5>	<rssi_6>	<rssi_7>	<rssi_8>
+%RSS	<race_number>	<timer>	<rssi_0>	<rssi_1>	<rssi_2>	<rssi_3>	<rssi_4>	<rssi_5>	<rssi_6>	<rssi_7>
 ?RSS
-@RSS	<race_number>	<timer>	<rssi_1>	<rssi_2>	<rssi_3>	<rssi_4>	<rssi_5>	<rssi_6>	<rssi_7>	<rssi_8>
+@RSS	<race_number>	<timer>	<rssi_0>	<rssi_1>	<rssi_2>	<rssi_3>	<rssi_4>	<rssi_5>	<rssi_6>	<rssi_7>
 
 Parameters:
  - race_number: Race number, which is incremented each time a new race is started.
