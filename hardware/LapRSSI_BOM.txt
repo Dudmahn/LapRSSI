@@ -1,7 +1,6 @@
 
 8x RX5808 Receiver Module w/SPI mod
- - $6.36  http://www.ebay.com/itm/FPV-5-8G-Wireless-Audio-Video-Receiving-Module-for-Boscam-for-RX5808-/182506586914?hash=item2a7e3d8322:g:gNUAAOSwWxNY2lCa
- -        https://www.ebay.com/sch/i.html?_from=R40&_trksid=p2380057.m570.l1313.TR0.TRC0.H0.Xrx5808.TRS0&_nkw=rx5808&_sacat=0
+ - $8.98   https://www.banggood.com/FPV-5_8G-Wireless-Audio-Video-Receiving-Module-RX5808-p-84775.html
 
 1x Teensy 3.2
  - $19.95 https://www.adafruit.com/product/2756
@@ -22,7 +21,7 @@
  - $35.00 http://www.getfpv.com/holybro-100mw-fpv-transceiver-telemetry-radio-set-915mhz.html
 
 1x XT60 Male Power Connector
- - $4.49 http://www.getfpv.com/xt60-p7ower-connectors-5-pair.html
+ - $4.49 http://www.getfpv.com/xt60-power-connectors-5-pair.html
 
 1x LapRSSI PCB
  - $10.00 (est.)
@@ -39,4 +38,4 @@
 
 Total
 =======================================
-$157.82 (not including shipping costs)
+$178.78 (not including shipping costs)
