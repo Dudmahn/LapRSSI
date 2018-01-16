@@ -25,8 +25,8 @@ import pyttsx3
 import winsound
 
 # Configuration
-#comPort = 'COM65'
-comPort = 'COM50'
+comPort = 'COM65'
+#comPort = 'COM50'
 #comPort = 'COM75'
 historySeconds = 150.0
 sayTimes = False

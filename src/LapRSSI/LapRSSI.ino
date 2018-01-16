@@ -28,8 +28,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Defines / Macros
 ////////////////////////////////////////////////////////////////////////////////
-#define FIRMWARE_VERSION                  "1.5"
-#define PROTOCOL_VERSION                  "1.4"
+#define FIRMWARE_VERSION                  "1.6"
 
 #define EEPROM_MAGIC_NUMBER               0xEE
 #define EEPROM_VERSION                    1
@@ -702,9 +701,8 @@ void sendMsgVER() {
   serialTxMsg_t msg;
   int len;
   
-  len = sprintf(msg.buf, "%s\t%s\t%s\r\n",
+  len = sprintf(msg.buf, "%s\t%s\r\n",
                 "@VER",
-                PROTOCOL_VERSION,
                 FIRMWARE_VERSION);
                 
   msg.len = len;

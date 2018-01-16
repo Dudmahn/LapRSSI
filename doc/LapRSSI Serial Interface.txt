@@ -33,11 +33,9 @@ The following messages are supported by the timing system:
 Version (VER)
 ================================================================================
 ?VER
-@VER	<protocol_version>	<fw_version>
+@VER	<fw_version>
 
 Parameters:
- - protocol_version: Serial interface protocol version number, in floating point
-                     number format.
  - fw_version: LapRSSI firmware version number, in floating point number format.
 
 
